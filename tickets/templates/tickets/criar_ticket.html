@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Abrir Ticket{% endblock %}
+
+{% block content %}
+    <div class="card p-4 abrir-container mx-auto">
+        <h2 class="card-title text-center">Abrir Novo Ticket de Suporte</h2>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label for="sumario" class="form-label">Problema:</label>
+                <input type="text" class="form-control" id="sumario" name="sumario" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="descricao_problema" class="form-label">Descrição do Problema:</label>
+                <textarea class="form-control" id="descricao_problema" name="descricao_problema" rows="4" required></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="ambiente" class="form-label">Ambiente:</label>
+                <select class="form-select" id="ambiente" name="ambiente" required>
+                    <option value="" selected>Selecione...</option>
+                    {% for ambiente in ambientes %}
+                        <option value="{{ ambiente.nome_ambiente }}">{{ ambiente.nome_ambiente }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% if mostrar_area %}
+            <div class="mb-3">
+                {% if mostrar_area_pampa %}
+                    <label for="area" class="form-label">Bolsão de horas:</label>
+                {% endif %}
+                {% if mostrar_area_abl %}
+                    <label for="area" class="form-label">Área:</label>
+                {% endif %}
+                <select class="form-select" id="area" name="area">
+                    {% if mostrar_area_pampa %}
+                        <option value="" selected>Selecione o tipo ou deixe vazio</option>
+                    {% endif %}
+                    {% if mostrar_area_abl %}
+                        <option value="" selected>Selecione a área ou deixe vazio</option>
+                    {% endif %}
+                    {% for area in areas %}
+                        <option value="{{ area.nome_area }}">{{ area.nome_area }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label for="prioridade" class="form-label">Prioridade (1 a 5):</label>
+                <input type="number" class="form-control" id="prioridade" name="prioridade" min="1" max="5" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="anexo" class="form-label">Documento de requisição/Anexos relevantes:</label>
+                <input type="file" class="form-control" id="anexo" name="anexo">
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">Enviar Ticket</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base_no_nav.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-center align-items-center mx-auto">
+        <div class="card login-card mx-auto login-container">
+            <h2 class="card-title text-center">Login do Cliente</h2>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Entrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

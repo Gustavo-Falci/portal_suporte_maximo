@@ -1,0 +1,41 @@
+/* Define a cor de fundo e a fonte para o corpo da página */
+body {
+    background-color: #f4f4f4 !important;
+    color: #161616 !important;
+    font-family: Arial, sans-serif !important;
+}
+
+/* Estiliza os botões primários com o azul do Maximo */
+.btn-primary {
+    background-color: #0f62fe !important;
+    border-color: #0f62fe !important;
+}
+
+/* Estiliza as mensagens de sucesso, erro e aviso */
+.alert-success {
+    background-color: #198038 !important;
+    color: #ffffff !important;
+    border-color: #198038 !important;
+}
+
+.alert-danger {
+    background-color: #da1e28 !important;
+    color: #ffffff !important;
+    border-color: #da1e28 !important;
+}
+
+.alert-warning {
+    background-color: #ff832b !important;
+    color: #ffffff !important;
+    border-color: #ff832b !important;
+}
+
+/* Estiliza os cards de forma mais sutil */
+.card {
+    border-color: #c6c6c6 !important;
+    box-shadow: none;
+}
+
+.login-offset {
+    margin-top: 1000px !important; /* Altere este valor para ajustar a altura */
+}

@@ -1,0 +1,22 @@
+{% extends "base_no_nav.html" %}
+
+{% block title %}Bem-Vindo{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-center align-items-center mx-auto bem-vindo-container">
+        <div class="card p-5 text-center larger-card">
+            {% if user.is_authenticated %}
+                <h2 class="display-4">Bem-vindo {{ user.get_full_name }}!</h2>
+                <p class="lead">Aqui você pode abrir novos tickets de suporte.</p>
+                <hr class="my-4">
+                <p>Clique no botão abaixo para iniciar o processo de criação de um novo ticket.</p>
+                <a class="btn btn-primary btn-lg" href="{% url 'criar_ticket' %}" role="button">Abrir Novo Ticket</a>
+            {% else %}
+                <h2 class="display-4">Portal de Cliente!</h2>
+                <p class="lead">Faça login para criar seus Tickets.</p>
+                <hr class="my-4">
+                <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Entrar no Portal</a>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
