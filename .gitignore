@@ -10,7 +10,7 @@ local_settings.py
 db.sqlite3
 media/
 
-# Ambiente Virtual (ajuste se sua pasta tiver outro nome)
+# Ambiente Virtual
 venv/
 env/
 .env
