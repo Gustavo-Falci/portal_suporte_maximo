@@ -1,55 +1,107 @@
-/* tickets/static/tickets/style.css */
+/* Variáveis de Cores (Inspirado no IBM Carbon Design) */
+:root {
+    --ibm-blue-60: #0f62fe;
+    --ibm-blue-70: #0043ce;
+    --ibm-gray-10: #f4f4f4;
+    --ibm-gray-100: #161616;
+    --ibm-white: #ffffff;
+    --ibm-alert-success: #198038;
+    --ibm-alert-error: #da1e28;
+}
 
-/* Define a cor de fundo e a fonte para o corpo da página */
 body {
-    background-color: #f4f4f4 !important;
-    color: #161616 !important;
-    font-family: 'IBM Plex Mono', sans-serif !important;
+    background-color: var(--ibm-gray-10) !important;
+    color: var(--ibm-gray-100) !important;
+    font-family: 'IBM Plex Mono', monospace !important; /* Fonte Obrigatória */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Estiliza os botões primários com o azul do Maximo */
-.btn-primary {
-    background-color: #0f62fe !important;
-    border-color: #0f62fe !important;
+/* Navbar */
+.bg-dark-ibm {
+    background-color: var(--ibm-gray-100) !important;
+    border-bottom: 2px solid var(--ibm-blue-60);
 }
 
-/* Estiliza as mensagens de sucesso, erro e aviso */
-.alert-success {
-    background-color: #198038 !important;
-    color: #ffffff !important;
-    border-color: #198038 !important;
+.navbar-brand {
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
-.alert-danger {
-    background-color: #da1e28 !important;
-    color: #ffffff !important;
-    border-color: #da1e28 !important;
-}
-
-.alert-warning {
-    background-color: #ff832b !important;
-    color: #ffffff !important;
-    border-color: #ff832b !important;
-}
-
-/* Estiliza os cards de forma mais sutil */
+/* Cards */
 .card {
-    border-color: #c6c6c6 !important;
-    box-shadow: none;
+    border: none !important;
+    border-radius: 0 !important; /* Design 'sharp' corporativo */
+    background-color: var(--ibm-white);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05); /* Sombra muito sutil */
 }
 
-/* Regras de posicionamento customizadas */
+.card-header {
+    background-color: var(--ibm-white) !important;
+    border-bottom: 1px solid #e0e0e0;
+    font-weight: 600;
+    padding: 1.5rem 1.5rem 0.5rem;
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+/* Botões */
+.btn {
+    border-radius: 0 !important; /* Botões quadrados */
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: var(--ibm-blue-60) !important;
+    border-color: var(--ibm-blue-60) !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--ibm-blue-70) !important;
+    border-color: var(--ibm-blue-70) !important;
+}
+
+/* Inputs e Forms */
+.form-control, .form-select {
+    border-radius: 0 !important;
+    border: 1px solid #8d8d8d;
+    background-color: #f4f4f4;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: var(--ibm-white);
+    border-color: var(--ibm-blue-60);
+    box-shadow: 0 0 0 2px rgba(15, 98, 254, 0.2);
+}
+
+.form-floating > label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+}
+
+/* Classes Utilitárias */
 .login-container {
-    max-width: 800px !important;
-    margin-top: 250px !important;
+    max-width: 400px;
+    margin: 4rem auto;
 }
 
-.bem-vindo-container {
-    max-width: 800px !important;
-    margin-top: 250px !important;
-}
 .abrir-container {
-    max-width: 700px !important;
-    margin-top: 50px !important;
+    max-width: 800px;
+    margin: 2rem auto;
 }
 
+/* Efeitos de Loading */
+.btn-loading .spinner-border {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+}

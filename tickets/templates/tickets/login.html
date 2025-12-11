@@ -1,18 +1,37 @@
-{% extends "base_no_nav.html" %}
-
-{% block title %}Login{% endblock %}
-
+{% extends "tickets/base_no_nav.html" %} 
 {% block content %}
-    <div class="d-flex justify-content-center align-items-center mx-auto">
-        <div class="card login-card mx-auto login-container">
-            <h2 class="card-title text-center">Login do Cliente</h2>
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="card login-container w-100 shadow-sm">
+        <div class="card-body">
+            <div class="text-center mb-4">
+                <h3 class="fw-bold mb-1">Bem-vindo</h3>
+                <p class="text-muted small">Faça login para acessar o Portal de Suporte</p>
+            </div>
+
             <form method="post">
                 {% csrf_token %}
-                {{ form.as_p }}
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary">Entrar</button>
+                
+                <div class="form-floating mb-3">
+                    <input type="text" name="username" class="form-control" id="floatingInput" placeholder="seu@email.com" required autofocus>
+                    <label for="floatingInput">E-mail</label>
+                </div>
+
+                <div class="form-floating mb-4">
+                    <input type="password" name="password" class="form-control" id="floatingPassword" placeholder="Senha" required>
+                    <label for="floatingPassword">Senha</label>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fa-solid fa-arrow-right-to-bracket me-2"></i> Entrar
+                    </button>
                 </div>
             </form>
+            
+            <div class="text-center mt-4">
+                <small class="text-muted">Esqueceu a senha? Contate o suporte interno.</small>
+            </div>
         </div>
     </div>
+</div>
 {% endblock %}

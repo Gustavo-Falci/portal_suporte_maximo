@@ -1,22 +1,42 @@
-{% extends "base_no_nav.html" %}
-
-{% block title %}Bem-Vindo{% endblock %}
+{% extends "tickets/base.html" %}
+{% load static %}
 
 {% block content %}
-    <div class="d-flex justify-content-center align-items-center mx-auto bem-vindo-container">
-        <div class="card p-5 text-center larger-card">
-            {% if user.is_authenticated %}
-                <h2 class="display-4">Bem-vindo {{ user.get_full_name }}!</h2>
-                <p class="lead">Aqui você pode abrir novos tickets de suporte.</p>
-                <hr class="my-4">
-                <p>Clique no botão abaixo para iniciar o processo de criação de um novo ticket.</p>
-                <a class="btn btn-primary btn-lg" href="{% url 'criar_ticket' %}" role="button">Abrir Novo Ticket</a>
-            {% else %}
-                <h2 class="display-4">Portal de Cliente!</h2>
-                <p class="lead">Faça login para criar seus Tickets.</p>
-                <hr class="my-4">
-                <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Entrar no Portal</a>
-            {% endif %}
+<div class="container d-flex flex-column justify-content-center align-items-center" style="min-height: 80vh;">
+    
+    <div class="card text-center shadow-sm" style="max-width: 600px; width: 100%;">
+        <div class="card-body p-5">
+            
+            <div class="mb-4">
+                <i class="fa-solid fa-headset fa-4x text-primary"></i>
+            </div>
+
+            <h1 class="h3 fw-bold mb-3">Portal de Suporte IT Consol</h1>
+            <p class="text-muted mb-4">
+                Bem-vindo ao sistema de suporte.<br>
+                Gerencie seus chamados e solicitações de forma ágil.
+            </p>
+
+            <div class="d-grid gap-3 d-sm-flex justify-content-center">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'criar_ticket' %}" class="btn btn-primary btn-lg px-4">
+                        <i class="fa-solid fa-plus me-2"></i>Abrir Novo Chamado
+                    </a>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-primary btn-lg px-5">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i>Fazer Login
+                    </a>
+                {% endif %}
+            </div>
+
         </div>
+        
+        {% if user.is_authenticated %}
+        <div class="card-footer text-muted bg-light border-top-0 py-3 small">
+            Logado como: <strong>{{ user.username }}</strong>
+        </div>
+        {% endif %}
     </div>
+
+</div>
 {% endblock %}

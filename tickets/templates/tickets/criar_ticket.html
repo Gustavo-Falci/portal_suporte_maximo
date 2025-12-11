@@ -1,78 +1,99 @@
-{% extends "base.html" %}
-
-{% block title %}Abrir Ticket{% endblock %}
+{% extends "tickets/base.html" %}
 
 {% block content %}
-    <div class="card p-4 abrir-container mx-auto">
-        <h2 class="card-title text-center">Abrir Novo Ticket de Suporte</h2>
-
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            
-            <div class="mb-3">
-                <label for="sumario" class="form-label">Problema:</label>
-                <input type="text" class="form-control" id="sumario" name="sumario" required>
-            </div>
-
-            <div class="mb-3">
-                <label for="descricao_problema" class="form-label">Descrição do Problema:</label>
-                <textarea class="form-control" id="descricao_problema" name="descricao_problema" rows="4" required></textarea>
-            </div>
-
-            <div class="mb-3">
-                <label for="ambiente" class="form-label">Ambiente:</label>
-                <select class="form-select" id="ambiente" name="ambiente" required>
-                    <option value="" selected>Selecione...</option>
-                    {% for ambiente in ambientes %}
-                        <option value="{{ ambiente.nome_ambiente }}">{{ ambiente.nome_ambiente }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            {% if mostrar_area %}
-            <div class="mb-3">
-                {% if mostrar_area_pampa %}
-                    <label for="area" class="form-label">Bolsão de horas:</label>
-                {% endif %}
-                {% if mostrar_area_abl %}
-                    <label for="area" class="form-label">Área:</label>
-                {% endif %}
-                <select class="form-select" id="area" name="area">
-                    {% if mostrar_area_pampa %}
-                        <option value="" selected>Selecione o tipo ou deixe vazio</option>
-                    {% endif %}
-                    {% if mostrar_area_abl %}
-                        <option value="" selected>Selecione a área ou deixe vazio</option>
-                    {% endif %}
-                    {% for area in areas %}
-                        <option value="{{ area.nome_area }}">{{ area.nome_area }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            {% endif %}
-
-            <div class="mb-3">
-                <label for="prioridade" class="form-label">Prioridade (1 a 5):</label>
-                <input type="number" class="form-control" id="prioridade" name="prioridade" min="1" max="5" required>
-            </div>
-
-            <div class="mb-3">
-                <label for="anexo" class="form-label">Documento de requisição/Anexos relevantes:</label>
-                <input type="file" class="form-control" id="anexo" name="anexo">
-            </div>
-
-            <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-primary">Enviar Ticket</button>
-            </div>
-        </form>
+<div class="abrir-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 fw-bold"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Novo Chamado</h2>
+        <a href="{% url 'pagina_inicial' %}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
     </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="ticketForm">
+                {% csrf_token %}
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <select class="form-select" id="ambiente" name="ambiente" required>
+                                <option value="" selected disabled>Selecione...</option>
+                                {% for ambiente in ambientes %}
+                                    <option value="{{ ambiente.nome_ambiente }}">{{ ambiente.nome_ambiente }}</option>
+                                {% endfor %}
+                            </select>
+                            <label for="ambiente">Ambiente Afetado *</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <select class="form-select" id="prioridade" name="prioridade" required>
+                                <option value="" selected disabled>Selecione...</option>
+                                <option value="1">1 - Crítica</option>
+                                <option value="2">2 - Alta</option>
+                                <option value="3">3 - Média</option>
+                                <option value="4">4 - Baixa</option>
+                                <option value="5">5 - Sem prioridade</option>
+                            </select>
+                            <label for="prioridade">Prioridade *</label>
+                        </div>
+                    </div>
+                </div>
+
+                {% if mostrar_area %}
+                <div class="form-floating mb-3">
+                    <select class="form-select" id="area" name="area">
+                        <option value="" selected>Não se aplica / Geral</option>
+                        {% for area in areas %}
+                            <option value="{{ area.nome_area }}">{{ area.nome_area }}</option>
+                        {% endfor %}
+                    </select>
+                    <label for="area">Área Solicitante</label>
+                </div>
+                {% endif %}
+
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="sumario" name="sumario" placeholder="Resumo curto" required maxlength="100">
+                    <label for="sumario">Título do Problema (Sumário) *</label>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <textarea class="form-control" placeholder="Descreva o problema aqui" id="descricao_problema" name="descricao_problema" style="height: 150px" required></textarea>
+                    <label for="descricao_problema">Descrição Detalhada do Problema *</label>
+                </div>
+
+                <div class="mb-4">
+                    <label for="anexo" class="form-label small text-muted ms-1">Anexar documento de evidência</label>
+                    <input class="form-control" type="file" id="anexo" name="anexo">
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary btn-lg" id="btnSubmit">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Criar chamado</span>
+                        <i class="fa-solid fa-paper-plane ms-2"></i>
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Script simples para feedback visual no botão de envio
+    document.getElementById('ticketForm').addEventListener('submit', function() {
+        var btn = document.getElementById('btnSubmit');
+        var spinner = btn.querySelector('.spinner-border');
+        var text = btn.querySelector('.btn-text');
+        var icon = btn.querySelector('.fa-paper-plane');
+        
+        // Desativa o botão e mostra o spinner
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        icon.classList.add('d-none');
+        text.innerText = "Enviando...";
+    });
+</script>
 {% endblock %}
