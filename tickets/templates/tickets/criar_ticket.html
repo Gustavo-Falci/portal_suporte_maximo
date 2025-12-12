@@ -18,7 +18,7 @@
                             <select class="form-select" id="ambiente" name="ambiente" required>
                                 <option value="" selected disabled>Selecione...</option>
                                 {% for ambiente in ambientes %}
-                                    <option value="{{ ambiente.nome_ambiente }}">{{ ambiente.nome_ambiente }}</option>
+                                    <option value="{{ ambiente.id }}">{{ ambiente.nome_ambiente }}</option>
                                 {% endfor %}
                             </select>
                             <label for="ambiente">Ambiente Afetado *</label>
@@ -44,7 +44,7 @@
                     <select class="form-select" id="area" name="area">
                         <option value="" selected>Não se aplica / Geral</option>
                         {% for area in areas %}
-                            <option value="{{ area.nome_area }}">{{ area.nome_area }}</option>
+                            <option value="{{ area.id }}">{{ area.nome_area }}</option>
                         {% endfor %}
                     </select>
                     <label for="area">Área Solicitante</label>
