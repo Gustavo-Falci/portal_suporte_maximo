@@ -12,6 +12,10 @@ def pagina_inicial(request):
     return render(request, "tickets/bem_vindo.html")
 
 @login_required(login_url="/login/")
+def ticket_sucesso(request: HttpRequest) -> HttpResponse:
+    return render(request, "tickets/sucesso.html")
+
+@login_required(login_url="/login/")
 def criar_ticket(request: HttpRequest) -> HttpResponse:
     
     # Lógica de exibição da Área (Frontend)
@@ -83,8 +87,8 @@ SR#TICKETID=&AUTOKEY&<br>
                     email.attach(anexo.name, anexo.read(), anexo.content_type)
                 
                 email.send()
-                messages.success(request, "Ticket enviado com sucesso!")
-                return redirect("criar_ticket")
+                
+                return redirect("ticket_sucesso")
                 
             except Exception as e:
                 messages.error(request, f"Erro técnico ao enviar: {e}")
