@@ -10,26 +10,31 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv # Requer: pip install python-dotenv
 
-# Build paths inside the project like this: BASE_DIR / "subdir".
+# Carrega o .env
+load_dotenv()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# =========================================================
+# CONFIGURAÇÕES BÁSICAS
+# =========================================================
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+# Lê do .env. Se não achar, usa uma chave insegura (SÓ PARA TESTE)
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-chave-padrao-local')
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-of66keyduizg(di@xd6f@+a%#43m^0hvpc3=@y_un!k3fy95tx"
+# Converte a string 'True'/'False' do .env para booleano do Python
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# SECURITY WARNING: don"t run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
-# Application definition
-
+# =========================================================
+# APLICAÇÕES E MIDDLEWARE
+# =========================================================
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -37,7 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "tickets"
+    "tickets", # App
 ]
 
 MIDDLEWARE = [
@@ -70,93 +75,98 @@ TEMPLATES = [
 WSGI_APPLICATION = "portal_suporte.wsgi.application"
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+# =========================================================
+# BANCO DE DADOS
+# =========================================================
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "portal_tickets_db",
-        "USER": "django_user",
-        "PASSWORD": "djangouser123",
-        "HOST": "localhost",
+        "NAME": os.getenv('DB_NAME'),
+        "USER": os.getenv('DB_USER'),
+        "PASSWORD": os.getenv('DB_PASSWORD'),
+        "HOST": os.getenv('DB_HOST', 'localhost'),
         "PORT": "5432",
     }
 }
 
 
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
+# =========================================================
+# VALIDAÇÃO DE SENHA E I18N
+# =========================================================
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
-LANGUAGE_CODE = "en-us"
-
-TIME_ZONE = "UTC"
-
+LANGUAGE_CODE = "pt-br" 
+TIME_ZONE = "America/Sao_Paulo" 
 USE_I18N = True
-
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
+# =========================================================
+# ARQUIVOS ESTÁTICOS E MÍDIA
+# =========================================================
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+# Configuração para Uploads (Anexos dos Tickets)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+# =========================================================
+# AUTENTICAÇÃO E LOGIN
+# =========================================================
 AUTH_USER_MODEL = "tickets.Cliente"
-
-# Define a URL para onde os usuários são redirecionados para fazer login
 LOGIN_URL = "login"
-
-# Define a URL para onde os usuários são redirecionados após o login
 LOGIN_REDIRECT_URL = "/"
-
-# URL para onde os usuários são redirecionados após o logout
 LOGOUT_REDIRECT_URL = "pagina_inicial"
 
-import os
+AUTHENTICATION_BACKEND = [
+    "tickets.backends.EmailBackend", 
+    "django.contrib.auth.backends.ModelBackend",
+]
 
-# Define o diretório onde o 'collectstatic' irá coletar todos os arquivos estáticos
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# Define que a sessão irá expirar quando o navegador for fechado
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-
+# =========================================================
+# E-MAIL (SMTP)
+# =========================================================
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-
-# Configurações para envio de e-mail real via SMTP
 EMAIL_HOST = "mail.iiotconsol.com" 
 EMAIL_PORT = 465
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
-EMAIL_HOST_USER = "maximo@iiotconsol.com"   
-EMAIL_HOST_PASSWORD = "Itconsol18@" 
+
+# Pega do .env ou string vazia se não achar
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')   
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD') 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER 
 
-AUTHENTICATION_BACKEND = [
-    "tickets.backends.EmailBackend", 
-    "django.contrib.auth.backends.ModelBackend", # Deixe este para ter um fallback
-]
+
+# =========================================================
+# SEGURANÇA CONDICIONAL
+# =========================================================
+
+# Se estivermos rodando LOCALMENTE (DEBUG=True):
+if DEBUG:
+    # Não força HTTPS (permite http://localhost:8000)
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    
+# Se estivermos em PRODUÇÃO (DEBUG=False):
+else:
+    # Força tudo para HTTPS
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
