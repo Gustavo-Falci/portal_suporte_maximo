@@ -33,7 +33,7 @@
         
         {% if user.is_authenticated %}
         <div class="card-footer text-muted bg-light border-top-0 py-3 small">
-            Logado como: <strong>{{ user.username }}</strong>
+            Logado como: <strong>{{ user.get_full_name|default:user.email }}</strong>
         </div>
         {% endif %}
     </div>
