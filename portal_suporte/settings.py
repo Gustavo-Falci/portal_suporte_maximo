@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv # Requer: pip install python-dotenv
+from dotenv import load_dotenv
 
 # Carrega o .env
 load_dotenv()
@@ -23,8 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # CONFIGURAÇÕES BÁSICAS
 # =========================================================
 
-# Lê do .env. Se não achar, usa uma chave insegura (SÓ PARA TESTE)
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-chave-padrao-local')
+# Lê do .env. Se não achar, usa uma chave insegura 
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # Converte a string 'True'/'False' do .env para booleano do Python
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
