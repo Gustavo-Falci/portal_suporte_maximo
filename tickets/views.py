@@ -7,6 +7,9 @@ from django.contrib import messages
 from .models import Ambiente, Area
 from .forms import TicketForm
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 def pagina_inicial(request):
     return render(request, "tickets/bem_vindo.html")
@@ -80,18 +83,20 @@ SR#TICKETID=&AUTOKEY&<br>
                     subject=sumario,
                     body=corpo_email,
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=["suportebr@itconsol.com"],
+                    to=[settings.EMAIL_DESTINATION],
                     reply_to=[request.user.email],
                 )
                 if anexo:
                     email.attach(anexo.name, anexo.read(), anexo.content_type)
                 
                 email.send()
-                
+
+                logger.info(f"Ticket enviado com sucesso pelo usuário {request.user.email}")
+
                 return redirect("ticket_sucesso")
                 
             except Exception as e:
-                messages.error(request, f"Erro técnico ao enviar: {e}")
+                logger.error(f"Falha ao enviar e-mail. User: {request.user.email}. Erro: {str(e)}")
         else:
             # Se o form for inválido (ex: arquivo grande demais), mostra erros
             for field, errors in form.errors.items():

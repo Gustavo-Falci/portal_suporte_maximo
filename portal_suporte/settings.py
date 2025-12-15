@@ -145,10 +145,11 @@ EMAIL_PORT = 465
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
 
-# Pega do .env ou string vazia se não achar
+# Pega do .env
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')   
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD') 
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER 
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_DESTINATION = os.getenv('SUPORTE_DESTINATION_EMAIL')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 # =========================================================
