@@ -47,6 +47,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -118,6 +119,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 
 # =========================================================
 # AUTENTICAÇÃO E LOGIN
@@ -149,24 +152,34 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 # =========================================================
-# SEGURANÇA CONDICIONAL
+# CONFIGURAÇÕES DE SEGURANÇA E AMBIENTE
 # =========================================================
 
-# Se estivermos rodando LOCALMENTE (DEBUG=True):
+DEBUG=True
+
 if DEBUG:
-    # Não força HTTPS (permite http://localhost:8000)
+    # --- AMBIENTE DE DESENVOLVIMENTO (LOCAL) ---
+    # Não força HTTPS para você conseguir trabalhar no localhost
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
+    SECURE_HSTS_SECONDS = 0 # Desabilita HSTS localmente
     
-# Se estivermos em PRODUÇÃO (DEBUG=False):
 else:
-    # Força tudo para HTTPS
+    # --- AMBIENTE DE PRODUÇÃO (SERVIDOR) ---
+    # Resolve W008: Força redirecionamento para HTTPS
     SECURE_SSL_REDIRECT = True
+    
+    # Resolve W012 e W016: Cookies só viajam por HTTPS (anti-roubo de sessão)
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_SECONDS = 31536000
+    
+    # Resolve W004: HTTP Strict Transport Security (HSTS)
+    # Avisa aos navegadores para recusarem conexões não seguras por 1 ano
+    SECURE_HSTS_SECONDS = 31536000 
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    
+    # Extras recomendados para blindagem
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
