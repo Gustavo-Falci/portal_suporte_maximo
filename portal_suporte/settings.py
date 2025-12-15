@@ -159,28 +159,17 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 DEBUG=True
 
 if DEBUG:
-    # --- AMBIENTE DE DESENVOLVIMENTO (LOCAL) ---
-    # Não força HTTPS para você conseguir trabalhar no localhost
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
-    SECURE_HSTS_SECONDS = 0 # Desabilita HSTS localmente
+    SECURE_HSTS_SECONDS = 0
     
 else:
-    # --- AMBIENTE DE PRODUÇÃO (SERVIDOR) ---
-    # Resolve W008: Força redirecionamento para HTTPS
     SECURE_SSL_REDIRECT = True
-    
-    # Resolve W012 e W016: Cookies só viajam por HTTPS (anti-roubo de sessão)
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    
-    # Resolve W004: HTTP Strict Transport Security (HSTS)
-    # Avisa aos navegadores para recusarem conexões não seguras por 1 ano
     SECURE_HSTS_SECONDS = 31536000 
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    
-    # Extras recomendados para blindagem
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
