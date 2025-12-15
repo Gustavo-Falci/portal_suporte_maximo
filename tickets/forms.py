@@ -1,19 +1,42 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
+from typing import Any
 from .models import Ambiente, Area
 
-# Formulário de Login (O seu original)
+# Formulário de Login
 class EmailAuthenticationForm(AuthenticationForm):
+    """
+    Formulário de autenticação customizado para usar E-mail como login.
+    Sobrescrevemos as mensagens de erro para ficarem em PT-BR amigável.
+    """
     username = forms.CharField(
         label="E-mail",
         max_length=254,
-        widget=forms.EmailInput(attrs={"autofocus": True, "class": "form-control", "placeholder": "nome@exemplo.com"})
+        widget=forms.EmailInput(attrs={
+            "autofocus": True, 
+            "class": "form-control", 
+            "placeholder": "nome@exemplo.com"
+        })
     )
     password = forms.CharField(
         label="Senha",
-        widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Sua senha"})
+        widget=forms.PasswordInput(attrs={
+            "class": "form-control", 
+            "placeholder": "Sua senha"
+        })
     )
+
+    # Customização das mensagens de erro nativas do AuthenticationForm
+    error_messages = {
+        'invalid_login': (
+            "Login inválido. E-mail ou senha incorretos. "
+        ),
+        'inactive': "Esta conta está inativa. Entre em contato com o administrador.",
+    }
+
+    def __init__(self, request: Any = None, *args: Any, **kwargs: Any) -> None:
+        super().__init__(request, *args, **kwargs)
 
 # Formulário de Ticket
 class TicketForm(forms.Form):
