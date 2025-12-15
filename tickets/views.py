@@ -43,7 +43,7 @@ def criar_ticket(request: HttpRequest) -> HttpResponse:
             person_id = request.user.person_id or ""
             area_nome = area_objeto.nome_area if area_objeto else ""
 
-            # --- Montagem do Corpo do E-mail (Igual ao anterior) ---
+            # Montagem do Corpo do E-mail
             corpo_email = f"""
 Descrição do problema: {descricao_problema}<br><br> 
 #MAXIMO_EMAIL_BEGIN<br>
@@ -102,7 +102,7 @@ SR#TICKETID=&AUTOKEY&<br>
 
     context = {
         "form": form, # Passamos o form para o template (opcional se quiser renderizar campos automáticos)
-        "ambientes": Ambiente.objects.filter(cliente=request.user), # Mantemos para compatibilidade com seu HTML atual
+        "ambientes": Ambiente.objects.filter(cliente=request.user), 
         "areas": Area.objects.filter(cliente=request.user),
         "mostrar_area": mostrar_area,
     }
