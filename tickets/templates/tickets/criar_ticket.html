@@ -11,7 +11,7 @@
         <div class="card-body">
             
             {% if form.errors %}
-                <div class="text-center mb-4 fade show" role="alert">
+                <div id="generalErrorAlert" class="text-center mb-4 fade show" role="alert">
                     <div class="d-inline-flex align-items-center text-danger fw-bold small">
                         <i class="fa-solid fa-circle-exclamation me-2"></i>
                         {% if form.non_field_errors %}
@@ -134,16 +134,47 @@
 </div>
 
 <script>
-    document.getElementById('ticketForm').addEventListener('submit', function(e) {
-        var btn = document.getElementById('btnSubmit');
-        var spinner = btn.querySelector('.spinner-border');
-        var text = btn.querySelector('.btn-text');
-        var icon = btn.querySelector('.fa-paper-plane');
-        
-        btn.classList.add('disabled'); 
-        spinner.classList.remove('d-none');
-        icon.classList.add('d-none');
-        text.innerText = "Enviando...";
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Script para Feedback visual ao Enviar (Spinner)
+        document.getElementById('ticketForm').addEventListener('submit', function(e) {
+            var btn = document.getElementById('btnSubmit');
+            var spinner = btn.querySelector('.spinner-border');
+            var text = btn.querySelector('.btn-text');
+            var icon = btn.querySelector('.fa-paper-plane');
+            
+            // Ativa o spinner e muda o texto
+            btn.classList.add('disabled'); 
+            spinner.classList.remove('d-none');
+            icon.classList.add('d-none');
+            text.innerText = "Enviando...";
+        });
+
+        // 2. Script para limpar erro ao digitar (Sua solicitação)
+        // Seleciona todos os campos que estão vermelhos (is-invalid)
+        var invalidFields = document.querySelectorAll('.is-invalid');
+        var generalAlert = document.getElementById('generalErrorAlert');
+
+        invalidFields.forEach(function(field) {
+            
+            // Função executada toda vez que o usuário digita/seleciona algo num campo errado
+            var checkRemainingErrors = function() {
+                // a) Remove o erro visual DESTE campo específico
+                if (field.classList.contains('is-invalid')) {
+                    field.classList.remove('is-invalid');
+                }
+
+                // b) Conta quantos campos AINDA têm a classe 'is-invalid' no formulário inteiro
+                var remainingErrors = document.querySelectorAll('.is-invalid').length;
+
+                // c) Se não sobrou nenhum (0), aí sim esconde o alerta geral
+                if (remainingErrors === 0 && generalAlert) {
+                    generalAlert.classList.add('d-none');
+                }
+            };
+
+            field.addEventListener('input', checkRemainingErrors);
+            field.addEventListener('change', checkRemainingErrors);
+        });
     });
 </script>
 {% endblock %}
