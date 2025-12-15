@@ -34,7 +34,7 @@
                            id="floatingInput" 
                            placeholder="seu@email.com" 
                            value="{{ form.username.value|default:'' }}" 
-                           required autofocus>
+                           autofocus>
                     <label for="floatingInput">E-mail</label>
                     
                     {% if form.username.errors %}
@@ -48,8 +48,7 @@
                     <input type="password" name="password" 
                            class="form-control {% if form.password.errors %}is-invalid{% endif %}" 
                            id="floatingPassword" 
-                           placeholder="Senha" 
-                           required>
+                           placeholder="Senha">
                     <label for="floatingPassword">Senha</label>
                     
                     {% if form.password.errors %}
