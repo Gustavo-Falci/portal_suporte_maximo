@@ -4,7 +4,7 @@ from .models import Cliente, Ambiente, Area
 
 # 1. Customização do Cabeçalho e Título do Admin (Visual Corporativo)
 admin.site.site_header = "Portal de Suporte | Administração"
-admin.site.site_title = "IT Console Admin"
+admin.site.site_title = "IT Consol Admin"
 admin.site.index_title = "Gestão de Usuários e Ativos"
 
 @admin.register(Cliente)
