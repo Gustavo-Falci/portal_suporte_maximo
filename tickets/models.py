@@ -1,5 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.conf import settings
+
+# --- MODELOS DE USUÁRIO E ESTRUTURA (JÁ EXISTENTES) ---
 
 class Cliente(AbstractUser):
     location = models.CharField(max_length=200, blank=True, null=True)
@@ -33,4 +36,110 @@ class Area(models.Model):
     
     def __str__(self):
         return self.nome_area
+
+# --- NOVO MODELO: TICKET (FASE 2) ---
+
+class Ticket(models.Model):
+    # Lista Exata de Status do IBM Maximo (ALN Domain)
+    MAXIMO_STATUS_CHOICES = [
+        ('NEW', 'Novo'),
+        ('QUEUED', 'Enfileirado'),
+        ('INPROG', 'Em Andamento'),
+        ('PENDING', 'Pendente'),
+        ('APPR', 'Aprovado'),
+        ('APPFML', 'Aprovado pelo Gerenciador de Cumprimento'),
+        ('APPLM', 'Aprovado pelo Gerente de Linha'),
+        ('RESOLVED', 'Resolvido'),
+        ('CLOSED', 'Fechado'),
+        ('CANCELLED', 'Cancelada'),
+        ('REJECTED', 'Rejeitado'),
+        ('DRAFT', 'Rascunho'),
+        ('HISTEDIT', 'Editado no Histórico'),
+        ('TSTCLI', 'Teste do cliente'),
+        ('TSTCLIOK', 'Teste do cliente OK'),
+        ('TSTCLIFAIL', 'Teste do cliente falhou'),
+        ('IMPPRODOK', 'Implementação em produção OK'),
+        ('AGREUN', 'Reunião Agendada'),
+        ('CRITFAIL', 'Falha Crítica'),
+        ('ROLLBACK', 'Rollback'),
+        ('TREINAMTO', 'Treinamento'),
+        ('DOC', 'Documentar'),
+        ('SLAHOLD', 'Espera de SLA'),
+    ]
+
+    PRIORIDADE_CHOICES = [
+        ('1', '1 - Crítica'),
+        ('2', '2 - Alta'),
+        ('3', '3 - Média'),
+        ('4', '4 - Baixa'),
+        ('5', '5 - Sem Prioridade'),
+    ]
+
+    # Vínculos (Quem abriu, Onde, Qual Área)
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="tickets")
+    ambiente = models.ForeignKey(Ambiente, on_delete=models.SET_NULL, null=True, blank=True)
+    area = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=True)
+
+    # Dados do Chamado
+    sumario = models.CharField(max_length=100, verbose_name="Resumo do Problema")
+    descricao = models.TextField(verbose_name="Descrição Detalhada")
+    arquivo = models.FileField(upload_to='anexos_tickets/', null=True, blank=True)
     
+    # Integração Maximo
+    maximo_id = models.CharField(max_length=50, null=True, blank=True, verbose_name="ID do Chamado (SR)")
+    
+    # Status padrão é NEW (Novo) até o Maximo processar
+    status_maximo = models.CharField(
+        max_length=20, 
+        default='NEW', 
+        choices=MAXIMO_STATUS_CHOICES,
+        verbose_name="Status Atual"
+    )
+
+    prioridade = models.CharField(
+        max_length=2, 
+        choices=PRIORIDADE_CHOICES, 
+        default='5', 
+        verbose_name="Prioridade"
+    )
+    
+    # Auditoria (Datas automáticas)
+    data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Aberto em")
+    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Última atualização")
+
+    class Meta:
+        ordering = ['-data_criacao'] # Ordena do mais recente para o mais antigo
+        db_table = "tickets"
+        verbose_name = "Ticket"
+        verbose_name_plural = "Tickets"
+
+    def __str__(self):
+        return f"Ticket #{self.id} - {self.sumario}"
+
+    @property
+    def badge_class(self):
+        """
+        Retorna a classe CSS do Bootstrap (bg-color) baseada no status atual.
+        Usado no frontend para colorir as etiquetas automaticamente.
+        """
+        status = self.status_maximo
+
+        # Verde (Sucesso / Conclusão)
+        if status in ['RESOLVED', 'TSTCLIOK', 'IMPPRODOK', 'APPR']:
+            return 'bg-success'
+        
+        # Amarelo/Laranja (Em andamento / Aguardando / Aprovação)
+        elif status in ['INPROG', 'PENDING', 'APPFML', 'APPLM', 'TSTCLI', 'AGREUN', 'TREINAMTO', 'DOC', 'SLAHOLD', 'QUEUED']:
+            return 'bg-warning text-dark'
+        
+        # Vermelho (Erro / Falha / Rejeição)
+        elif status in ['TSTCLIFAIL', 'CRITFAIL', 'REJECTED', 'ROLLBACK']:
+            return 'bg-danger'
+        
+        # Cinza (Fechado / Cancelado / Histórico)
+        elif status in ['CLOSED', 'CANCELLED', 'HISTEDIT', 'DRAFT']:
+            return 'bg-secondary'
+        
+        # Azul (Padrão para Novo)
+        else:
+            return 'bg-primary'

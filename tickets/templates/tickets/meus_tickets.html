@@ -1,0 +1,91 @@
+{% extends 'tickets/base.html' %}
+{% load static %}
+
+{% block title %}Meus Chamados - Portal de Suporte{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-8">
+            <h2 class="fw-bold mb-1">Meus Chamados</h2>
+            <p class="text-muted mb-0" style="font-size: 0.9rem;">
+                Acompanhe o status das seus tickets.
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end text-start mt-3 mt-md-0">
+            <a href="{% url 'criar_ticket' %}" class="btn btn-primary d-inline-flex align-items-center" style="background-color: var(--ibm-blue-60); border: none; padding: 10px 20px;">
+                <span class="me-2" style="font-size: 1.2rem;">+</span> Novo Ticket
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0" style="border-radius: 0;">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle" style="font-family: 'IBM Plex Mono', monospace;">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" class="ps-4 py-3">ID Portal</th>
+                            <th scope="col" class="py-3">Resumo</th>
+                            <th scope="col" class="py-3">Aberto em</th>
+                            <th scope="col" class="py-3">Status</th>
+                            <th scope="col" class="py-3">ID Maximo (SR)</th>
+                            <th scope="col" class="text-end pe-4 py-3">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr>
+                            <td class="ps-4 fw-bold text-secondary">#{{ ticket.id }}</td>
+                            <td>
+                                <span class="d-inline-block text-truncate" style="max-width: 250px;" title="{{ ticket.sumario }}">
+                                    {{ ticket.sumario }}
+                                </span>
+                            </td>
+                            <td>{{ ticket.data_criacao|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="badge {{ ticket.badge_class }} rounded-0 fw-normal px-2 py-1">
+                                    {{ ticket.get_status_maximo_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if ticket.maximo_id %}
+                                    <span class="badge bg-light text-dark border font-monospace">
+                                        {{ ticket.maximo_id }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted fst-italic" style="font-size: 0.85rem;">
+                                        <div class="spinner-border spinner-border-sm text-secondary me-1" role="status" style="width: 0.7rem; height: 0.7rem;"></div>
+                                        Sincronizando...
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                <a href="{% url 'detalhe_ticket' ticket.id %}" class="btn btn-sm btn-outline-dark rounded-0" title="Ver detalhes do chamado">
+                                    Ver Detalhes
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="text-muted opacity-75">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-inbox mb-3" viewBox="0 0 16 16">
+                                        <path d="M4.98 4a.5.5 0 0 0-.39.188L1.54 8H6a.5.5 0 0 1 .5.5 1.5 1.5 0 1 0 3 0A.5.5 0 0 1 10 8h4.46l-3.05-3.812A.5.5 0 0 0 11.02 4H4.98zm-1.17-.437A1.5 1.5 0 0 1 4.98 3h6.04a1.5 1.5 0 0 1 1.17.563l3.7 4.625a.5.5 0 0 1 .106.374l-.39 3.124A1.5 1.5 0 0 1 14.117 13H1.883a1.5 1.5 0 0 1-1.489-1.314l-.39-3.124a.5.5 0 0 1 .106-.374l3.7-4.625z"/>
+                                    </svg>
+                                    <p class="mb-1">Nenhum chamado encontrado.</p>
+                                    <small>Seus tickets abertos aparecerão aqui.</small>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white border-top-0 py-3">
+            <small class="text-muted">Mostrando {{ tickets|length }} registros</small>
+        </div>
+    </div>
+</div>
+{% endblock %}

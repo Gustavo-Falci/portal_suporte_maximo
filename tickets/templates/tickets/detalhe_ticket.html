@@ -1,0 +1,90 @@
+{% extends 'tickets/base.html' %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="d-flex align-items-center mb-4">
+        <a href="{% url 'meus_tickets' %}" class="btn btn-outline-secondary me-3 rounded-0">
+            &larr; Voltar
+        </a>
+        <h2 class="fw-bold mb-0">Detalhes do Chamado #{{ ticket.id }}</h2>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm rounded-0 mb-4">
+                <div class="card-header bg-light fw-bold">
+                    Resumo
+                </div>
+                <div class="card-body">
+                    <h4 class="card-title">{{ ticket.sumario }}</h4>
+                    <hr>
+                    <p class="card-text" style="white-space: pre-wrap;">{{ ticket.descricao }}</p>
+                </div>
+            </div>
+
+            {% if ticket.arquivo %}
+            <div class="card shadow-sm rounded-0">
+                <div class="card-header bg-light fw-bold">
+                    Anexo Enviado
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-paperclip me-2" viewBox="0 0 16 16">
+                            <path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0V3z"/>
+                        </svg>
+                        <a href="{{ ticket.arquivo.url }}" target="_blank" class="text-decoration-none">
+                            Ver arquivo anexado
+                        </a>
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm rounded-0 mb-3 border-primary">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small">Status no Maximo</h6>
+                    <span class="badge {{ ticket.badge_class }} rounded-0 fs-6 w-100 py-2">
+                        {{ ticket.get_status_maximo_display }}
+                    </span>
+                    
+                    <div class="mt-3">
+                        <h6 class="text-muted text-uppercase small">ID do Chamado (SR)</h6>
+                        <span class="fs-5 font-monospace">
+                            {% if ticket.maximo_id %}
+                                {{ ticket.maximo_id }}
+                            {% else %}
+                                <span class="text-muted fst-italic fs-6">Sincronizando...</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm rounded-0">
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <strong>Aberto em:</strong><br>
+                            {{ ticket.data_criacao|date:"d/m/Y H:i" }}
+                        </li>
+                        <li class="mb-2">
+                            <strong>Ambiente:</strong><br>
+                            {{ ticket.ambiente }}
+                        </li>
+                        <li class="mb-2">
+                            <strong>Área:</strong><br>
+                            {{ ticket.area|default:"-" }}
+                        </li>
+                        <li class="mb-0">
+                            <strong>Prioridade:</strong><br>
+                            {{ ticket.get_prioridade_display }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

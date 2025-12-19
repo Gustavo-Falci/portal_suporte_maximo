@@ -31,8 +31,10 @@
                         <div class="form-floating">
                             <select class="form-select {% if form.ambiente.errors %}is-invalid{% endif %}" id="ambiente" name="ambiente">
                                 <option value="" disabled {% if not form.ambiente.value %}selected{% endif %}>Selecione...</option>
+                                
                                 {% for ambiente in ambientes %}
-                                    <option value="{{ ambiente.id }}" {% if form.ambiente.value|stringformat:"s" == ambiente.id|stringformat:"s" %}selected{% endif %}>
+                                    <option value="{{ ambiente.id }}" 
+                                        {% if form.ambiente.value|stringformat:"s" == ambiente.id|stringformat:"s" %}selected{% endif %}>
                                         {{ ambiente.nome_ambiente }}
                                     </option>
                                 {% endfor %}
@@ -99,8 +101,8 @@
                 <div class="form-floating mb-3">
                     <textarea class="form-control {% if form.descricao_problema.errors %}is-invalid{% endif %}" 
                               placeholder="Descreva o problema aqui" 
-                              id="descricao_problema" 
-                              name="descricao_problema" 
+                              id="descricao" 
+                              name="descricao" 
                               style="height: 150px">{{ form.descricao_problema.value|default:'' }}</textarea>
                     <label for="descricao_problema">Descrição Detalhada do Problema *</label>
                     
@@ -110,11 +112,14 @@
                 </div>
 
                 <div class="mb-4">
-                    <label for="anexo" class="form-label small text-muted ms-1">Anexar documento de evidência</label>
-                    <input class="form-control {% if form.anexo.errors %}is-invalid{% endif %}" type="file" id="anexo" name="anexo">
+                    <label for="arquivo" class="form-label small text-muted ms-1">Anexar documento de evidência (Opcional)</label>
+                    <input class="form-control {% if form.arquivo.errors %}is-invalid{% endif %}" 
+                        type="file" 
+                        id="arquivo" 
+                        name="arquivo">
                     
-                    {% if form.anexo.errors %}
-                        <div class="invalid-feedback text-start">{{ form.anexo.errors.0 }}</div>
+                    {% if form.arquivo.errors %}
+                        <div class="invalid-feedback text-start">{{ form.arquivo.errors.0 }}</div>
                     {% endif %}
                 </div>
 

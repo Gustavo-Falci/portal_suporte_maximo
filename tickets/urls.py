@@ -22,4 +22,6 @@ urlpatterns = [
     # Página de Sucesso (Onde o usuário cai após enviar o ticket)
     path("sucesso/", views.ticket_sucesso, name="ticket_sucesso"),
 
+    path("meus-tickets/", views.meus_tickets, name="meus_tickets"),
+    path("ticket/<int:pk>/", views.detalhe_ticket, name="detalhe_ticket"),
 ]

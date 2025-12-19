@@ -2,13 +2,15 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 from typing import Any
-from .models import Ambiente, Area
+import os
+from .models import Ambiente, Area, Ticket
 
-# Formulário de Login
+# ==============================================================================
+# 1. FORMULÁRIO DE LOGIN (MANTIDO IDÊNTICO)
+# ==============================================================================
 class EmailAuthenticationForm(AuthenticationForm):
     """
     Formulário de autenticação customizado para usar E-mail como login.
-    Sobrescrevemos as mensagens de erro para ficarem em PT-BR amigável.
     """
     username = forms.CharField(
         label="E-mail",
@@ -27,78 +29,72 @@ class EmailAuthenticationForm(AuthenticationForm):
         })
     )
 
-    # Customização das mensagens de erro nativas do AuthenticationForm
     error_messages = {
-        'invalid_login': (
-            "Login inválido. E-mail ou senha incorretos. "
-        ),
+        'invalid_login': "Login inválido. E-mail ou senha incorretos.",
         'inactive': "Esta conta está inativa. Entre em contato com o administrador.",
     }
 
     def __init__(self, request: Any = None, *args: Any, **kwargs: Any) -> None:
         super().__init__(request, *args, **kwargs)
 
-# Formulário de Ticket
-class TicketForm(forms.Form):
-    sumario = forms.CharField(
-        max_length=100, 
-        required=True,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Resumo curto'})
-    )
-    descricao_problema = forms.CharField(
-        required=True,
-        widget=forms.Textarea(attrs={'class': 'form-control', 'style': 'height: 150px', 'placeholder': 'Descreva o problema aqui'})
-    )
-    # ModelChoiceField garante que o ID enviado realmente existe no banco
-    ambiente = forms.ModelChoiceField(
-        queryset=Ambiente.objects.none(), # Será preenchido no __init__
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
-    prioridade = forms.ChoiceField(
-        choices=[
-            ('', 'Selecione...'),
-            ('1', '1 - Crítica'),
-            ('2', '2 - Alta'),
-            ('3', '3 - Média'),
-            ('4', '4 - Baixa'),
-            ('5', '5 - Sem prioridade')
-        ],
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
-    area = forms.ModelChoiceField(
-        queryset=Area.objects.none(), # Será preenchido no __init__
-        required=False,
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
-    
-    # Validação de Arquivo
-    anexo = forms.FileField(
-        required=False,
-        widget=forms.FileInput(attrs={'class': 'form-control'})
-    )
+
+# ==============================================================================
+# 2. FORMULÁRIO DE TICKET (COM PRIORIDADE)
+# ==============================================================================
+class TicketForm(forms.ModelForm):
+    """
+    ModelForm para Ticket.
+    Inclui validação de anexo e filtro de ambientes por usuário.
+    """
+    class Meta:
+        model = Ticket
+        # Agora incluímos 'prioridade' na lista de campos
+        fields = ['sumario', 'descricao', 'ambiente', 'prioridade', 'area', 'arquivo']
+        
+        # Estilização com Bootstrap 5
+        widgets = {
+            'sumario': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Resumo curto'
+            }),
+            'descricao': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'style': 'height: 150px', 
+                'placeholder': 'Descreva detalhadamente o problema'
+            }),
+            'ambiente': forms.Select(attrs={'class': 'form-select'}),
+            'prioridade': forms.Select(attrs={'class': 'form-select'}), 
+            'area': forms.Select(attrs={'class': 'form-select'}),
+            'arquivo': forms.FileInput(attrs={'class': 'form-control'}),
+        }
 
     def __init__(self, *args, **kwargs):
-        # Recebemos o 'user' para filtrar os ambientes/áreas dele
+        # Captura o usuário para filtrar as opções
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
         if user:
             self.fields['ambiente'].queryset = Ambiente.objects.filter(cliente=user)
             self.fields['area'].queryset = Area.objects.filter(cliente=user)
+        else:
+            self.fields['ambiente'].queryset = Ambiente.objects.none()
+            self.fields['area'].queryset = Area.objects.none()
+        
 
-    def clean_anexo(self):
-        arquivo = self.cleaned_data.get('anexo')
+    def clean_arquivo(self):
+        """
+        Validação do arquivo (tamanho e extensão).
+        """
+        arquivo = self.cleaned_data.get('arquivo')
         if arquivo:
-            # 1. Limite de Tamanho: 5MB
-            if arquivo.size > 5 * 1024 * 1024:
-                raise ValidationError("O arquivo é muito grande. O limite máximo é 5MB.")
+            # 1. Limite de Tamanho: 15MB
+            if arquivo.size > 15 * 1024 * 1024:
+                raise ValidationError("O arquivo é muito grande. O limite máximo é 15MB.")
             
-            # 2. Extensões Permitidas (Whitelist)
-            extensoes_validas = ['.pdf', '.png', '.jpg', '.jpeg', '.txt', '.log', '.csv', '.xlsx', 'docx']
-            import os
+            # 2. Extensões Permitidas
+            extensoes_validas = ['.pdf', '.png', '.jpg', '.jpeg', '.txt', '.log', '.csv', '.xlsx', '.docx', '.doc']
             ext = os.path.splitext(arquivo.name)[1].lower()
+            
             if ext not in extensoes_validas:
                 raise ValidationError(f"Extensão '{ext}' não permitida. Use: PDF, Imagens, Logs, Excel ou Word")
                 

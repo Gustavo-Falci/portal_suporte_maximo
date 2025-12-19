@@ -1,11 +1,14 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Cliente, Ambiente, Area
+from .models import Cliente, Ambiente, Area, Ticket
 
 # 1. Customização do Cabeçalho e Título do Admin (Visual Corporativo)
 admin.site.site_header = "Portal de Suporte | Administração"
 admin.site.site_title = "IT Consol Admin"
 admin.site.index_title = "Gestão de Usuários e Ativos"
+
+# ATENÇÃO: Removi as linhas 'admin.site.register(...)' que estavam soltas aqui.
+# Usaremos apenas os decoradores (@admin.register) abaixo para evitar o erro de duplicidade.
 
 @admin.register(Cliente)
 class ClienteAdmin(UserAdmin):
@@ -61,3 +64,23 @@ class AreaAdmin(admin.ModelAdmin):
     @admin.display(description='Cliente', ordering='cliente__email')
     def get_cliente_email(self, obj):
         return obj.cliente.email
+    
+@admin.register(Ticket)
+class TicketAdmin(admin.ModelAdmin):
+    """
+    Gestão dos Tickets (Visualização e Auditoria)
+    """
+    # Adicionei 'prioridade' na visualização da lista
+    list_display = ('id', 'sumario', 'cliente', 'prioridade', 'status_maximo', 'maximo_id', 'data_criacao')
+    
+    # Filtros úteis para relatórios rápidos
+    list_filter = ('status_maximo', 'prioridade', 'data_criacao', 'area')
+    
+    # Busca expandida para encontrar tickets facilmente
+    search_fields = ('sumario', 'descricao', 'cliente__username', 'cliente__email', 'maximo_id')
+    
+    # Datas não devem ser editadas manualmente
+    readonly_fields = ('data_criacao', 'data_atualizacao')
+    
+    # Ordena do mais recente para o mais antigo
+    ordering = ('-data_criacao',)
