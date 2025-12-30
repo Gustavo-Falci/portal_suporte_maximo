@@ -39,7 +39,7 @@ class EmailAuthenticationForm(AuthenticationForm):
 
 
 # ==============================================================================
-# 2. FORMULÁRIO DE TICKET (COM PRIORIDADE)
+# 2. FORMULÁRIO DE TICKET
 # ==============================================================================
 class TicketForm(forms.ModelForm):
     """
@@ -76,11 +76,7 @@ class TicketForm(forms.ModelForm):
         if user:
             self.fields['ambiente'].queryset = Ambiente.objects.filter(cliente=user)
             self.fields['area'].queryset = Area.objects.filter(cliente=user)
-        else:
-            self.fields['ambiente'].queryset = Ambiente.objects.none()
-            self.fields['area'].queryset = Area.objects.none()
         
-
     def clean_arquivo(self):
         """
         Validação do arquivo (tamanho e extensão).

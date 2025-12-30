@@ -37,7 +37,7 @@ class Area(models.Model):
     def __str__(self):
         return self.nome_area
 
-# --- NOVO MODELO: TICKET (FASE 2) ---
+# --- TICKET (FASE 2) ---
 
 class Ticket(models.Model):
     # Lista Exata de Status do IBM Maximo (ALN Domain)
@@ -68,6 +68,7 @@ class Ticket(models.Model):
     ]
 
     PRIORIDADE_CHOICES = [
+        ('', 'Selecione...'),
         ('1', '1 - Crítica'),
         ('2', '2 - Alta'),
         ('3', '3 - Média'),
@@ -77,8 +78,8 @@ class Ticket(models.Model):
 
     # Vínculos (Quem abriu, Onde, Qual Área)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="tickets")
-    ambiente = models.ForeignKey(Ambiente, on_delete=models.SET_NULL, null=True, blank=True)
-    area = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=True)
+    ambiente = models.ForeignKey(Ambiente, on_delete=models.SET_NULL, null=True, blank=False)
+    area = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=False)
 
     # Dados do Chamado
     sumario = models.CharField(max_length=100, verbose_name="Resumo do Problema")
@@ -99,8 +100,9 @@ class Ticket(models.Model):
     prioridade = models.CharField(
         max_length=2, 
         choices=PRIORIDADE_CHOICES, 
-        default='5', 
-        verbose_name="Prioridade"
+        default='', 
+        verbose_name="Prioridade",
+        blank=False
     )
     
     # Auditoria (Datas automáticas)

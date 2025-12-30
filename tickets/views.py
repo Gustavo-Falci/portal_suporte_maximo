@@ -13,8 +13,7 @@ logger = logging.getLogger(__name__)
 # --- PÁGINA INICIAL ---
 def pagina_inicial(request):
     if request.user.is_authenticated:
-        return redirect('meus_tickets')
-    return render(request, "tickets/bem_vindo.html")
+        return render(request, "tickets/bem_vindo.html")
 
 # --- SUCESSO ---
 @login_required(login_url="/login/")

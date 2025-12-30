@@ -29,7 +29,8 @@
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <div class="form-floating">
-                            <select class="form-select {% if form.ambiente.errors %}is-invalid{% endif %}" id="ambiente" name="ambiente">
+                            <select class="form-select {% if form.ambiente.errors %}is-invalid{% endif %}" id="id_ambiente" name="ambiente">
+                                
                                 <option value="" disabled {% if not form.ambiente.value %}selected{% endif %}>Selecione...</option>
                                 
                                 {% for ambiente in ambientes %}
@@ -39,10 +40,13 @@
                                     </option>
                                 {% endfor %}
                             </select>
-                            <label for="ambiente">Ambiente Afetado *</label>
+                            
+                            <label for="id_ambiente">Ambiente Afetado *</label>
                             
                             {% if form.ambiente.errors %}
-                                <div class="invalid-feedback text-start">{{ form.ambiente.errors.0 }}</div>
+                                <div class="invalid-feedback">
+                                    {{ form.ambiente.errors.0 }}
+                                </div>
                             {% endif %}
                         </div>
                     </div>
@@ -99,15 +103,15 @@
                 </div>
 
                 <div class="form-floating mb-3">
-                    <textarea class="form-control {% if form.descricao_problema.errors %}is-invalid{% endif %}" 
+                    <textarea class="form-control {% if form.descricao.errors %}is-invalid{% endif %}" 
                               placeholder="Descreva o problema aqui" 
                               id="descricao" 
                               name="descricao" 
-                              style="height: 150px">{{ form.descricao_problema.value|default:'' }}</textarea>
-                    <label for="descricao_problema">Descrição Detalhada do Problema *</label>
+                              style="height: 150px">{{ form.descricao.value|default:'' }}</textarea>
+                    <label for="descricao">Descrição Detalhada do Problema *</label>
                     
-                    {% if form.descricao_problema.errors %}
-                        <div class="invalid-feedback text-start">{{ form.descricao_problema.errors.0 }}</div>
+                    {% if form.descricao.errors %}
+                        <div class="invalid-feedback text-start">{{ form.descricao.errors.0 }}</div>
                     {% endif %}
                 </div>
 

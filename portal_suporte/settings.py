@@ -127,8 +127,8 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # =========================================================
 AUTH_USER_MODEL = "tickets.Cliente"
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "pagina_inicial"
+LOGIN_REDIRECT_URL = "pagina_inicial"
+LOGOUT_REDIRECT_URL = "login"
 
 AUTHENTICATION_BACKENDS = [
     "tickets.backend.EmailBackend", 
