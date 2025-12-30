@@ -43,7 +43,7 @@ class Ticket(models.Model):
     # Lista Exata de Status do IBM Maximo (ALN Domain)
     MAXIMO_STATUS_CHOICES = [
         ('NEW', 'Novo'),
-        ('QUEUED', 'Enfileirado'),
+        ('QUEUED', 'Em fila'),
         ('INPROG', 'Em Andamento'),
         ('PENDING', 'Pendente'),
         ('APPR', 'Aprovado'),
@@ -79,7 +79,7 @@ class Ticket(models.Model):
     # Vínculos (Quem abriu, Onde, Qual Área)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="tickets")
     ambiente = models.ForeignKey(Ambiente, on_delete=models.SET_NULL, null=True, blank=False)
-    area = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=False)
+    area = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=True)
 
     # Dados do Chamado
     sumario = models.CharField(max_length=100, verbose_name="Resumo do Problema")
