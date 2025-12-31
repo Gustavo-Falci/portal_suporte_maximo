@@ -11,9 +11,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 # --- PÁGINA INICIAL ---
-def pagina_inicial(request):
+def pagina_inicial(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return render(request, "tickets/bem_vindo.html")
+    else:
+        return redirect("login")
 
 # --- SUCESSO ---
 @login_required(login_url="/login/")
