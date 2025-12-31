@@ -6,14 +6,24 @@
         <a href="{% url 'meus_tickets' %}" class="btn btn-outline-secondary me-3 rounded-0">
             &larr; Voltar
         </a>
-        <h2 class="fw-bold mb-0">Detalhes do Chamado #{{ ticket.id }}</h2>
+        <h2 class="fw-bold mb-0 d-flex align-items-center">
+            Detalhes do Chamado
+            {% if ticket.maximo_id %}
+                <span class="ms-2">#{{ ticket.maximo_id }}</span>
+            {% else %}
+                <span class="text-muted fst-italic ms-3 fw-normal" style="font-size: 1rem;">
+                    <div class="spinner-border text-secondary me-2" role="status" style="width: 1rem; height: 1rem; border-width: 2px;"></div>
+                    Sincronizando...
+                </span>
+            {% endif %}
+        </h2>    
     </div>
 
     <div class="row">
         <div class="col-md-8">
             <div class="card shadow-sm rounded-0 mb-4">
                 <div class="card-header bg-light fw-bold">
-                    Resumo
+                    Descrição
                 </div>
                 <div class="card-body">
                     <h4 class="card-title">{{ ticket.sumario }}</h4>
@@ -44,18 +54,21 @@
         <div class="col-md-4">
             <div class="card shadow-sm rounded-0 mb-3 border-primary">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase small">Status no Maximo</h6>
+                    <h6 class="text-muted text-uppercase small">Status</h6>
                     <span class="badge {{ ticket.badge_class }} rounded-0 fs-6 w-100 py-2">
                         {{ ticket.get_status_maximo_display }}
                     </span>
                     
                     <div class="mt-3">
-                        <h6 class="text-muted text-uppercase small">ID do Chamado (SR)</h6>
+                        <h6 class="text-muted text-uppercase small">ID</h6>
                         <span class="fs-5 font-monospace">
                             {% if ticket.maximo_id %}
                                 {{ ticket.maximo_id }}
                             {% else %}
-                                <span class="text-muted fst-italic fs-6">Sincronizando...</span>
+                                <span class="text-muted fst-italic ms-3 fw-normal" style="font-size: 1rem;">
+                                    <div class="spinner-border text-secondary me-2" role="status" style="width: 1rem; height: 1rem; border-width: 2px;"></div>
+                                    Sincronizando...
+                                </span>
                             {% endif %}
                         </span>
                     </div>
@@ -71,12 +84,18 @@
                         </li>
                         <li class="mb-2">
                             <strong>Ambiente:</strong><br>
-                            {{ ticket.ambiente }}
+                            {{ ticket.ambiente.nome_ambiente }}
                         </li>
-                        <li class="mb-2">
-                            <strong>Área:</strong><br>
-                            {{ ticket.area|default:"-" }}
-                        </li>
+
+                        {% with user_lower=request.user.username|lower %}
+                            {% if ticket.area and "pampa" in user_lower or ticket.area and "abl" in user_lower %}
+                                <li class="mb-2">
+                                    <strong>Área:</strong><br>
+                                    {{ ticket.area }}
+                                </li>
+                            {% endif %}
+                        {% endwith %}
+
                         <li class="mb-0">
                             <strong>Prioridade:</strong><br>
                             {{ ticket.get_prioridade_display }}

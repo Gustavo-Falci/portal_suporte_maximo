@@ -25,29 +25,16 @@
                 <table class="table table-hover mb-0 align-middle" style="font-family: 'IBM Plex Mono', monospace;">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="ps-4 py-3">ID Portal</th>
-                            <th scope="col" class="py-3">Resumo</th>
-                            <th scope="col" class="py-3">Aberto em</th>
-                            <th scope="col" class="py-3">Status</th>
-                            <th scope="col" class="py-3">ID Maximo (SR)</th>
-                            <th scope="col" class="text-end pe-4 py-3">Ações</th>
+                            <th scope="col" class="py-3" style="width: 200px;">ID</th>
+                            <th scope="col" class="py-3" style="width: auto;">Descrição</th>
+                            <th scope="col" class="py-3" style="width: 200px;">Aberto em</th>
+                            <th scope="col" class="py-3" style="width: 120px;">Status</th>
+                            <th scope="col" class="text-end pe-4 py-3" style="width: 200px;"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for ticket in tickets %}
                         <tr>
-                            <td class="ps-4 fw-bold text-secondary">#{{ ticket.id }}</td>
-                            <td>
-                                <span class="d-inline-block text-truncate" style="max-width: 250px;" title="{{ ticket.sumario }}">
-                                    {{ ticket.sumario }}
-                                </span>
-                            </td>
-                            <td>{{ ticket.data_criacao|date:"d/m/Y H:i" }}</td>
-                            <td>
-                                <span class="badge {{ ticket.badge_class }} rounded-0 fw-normal px-2 py-1">
-                                    {{ ticket.get_status_maximo_display }}
-                                </span>
-                            </td>
                             <td>
                                 {% if ticket.maximo_id %}
                                     <span class="badge bg-light text-dark border font-monospace">
@@ -59,6 +46,17 @@
                                         Sincronizando...
                                     </span>
                                 {% endif %}
+                            </td>
+                            <td>
+                                <span class="d-inline-block text-truncate" style="max-width: 1000px;" title="{{ ticket.sumario }}">
+                                    {{ ticket.sumario }}
+                                </span>
+                            </td>
+                            <td>{{ ticket.data_criacao|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="badge {{ ticket.badge_class }} rounded-0 fw-normal px-2 py-1">
+                                    {{ ticket.get_status_maximo_display }}
+                                </span>
                             </td>
                             <td class="text-end pe-4">
                                 <a href="{% url 'detalhe_ticket' ticket.id %}" class="btn btn-sm btn-outline-dark rounded-0" title="Ver detalhes do chamado">

@@ -22,7 +22,7 @@ def pagina_inicial(request: HttpRequest) -> HttpResponse:
 def ticket_sucesso(request: HttpRequest) -> HttpResponse:
     return render(request, "tickets/sucesso.html")
 
-# --- LISTAGEM DE TICKETS (NOVO) ---
+# --- LISTAGEM DE TICKETS ---
 @login_required(login_url="/login/")
 def meus_tickets(request: HttpRequest) -> HttpResponse:
     """
@@ -31,7 +31,7 @@ def meus_tickets(request: HttpRequest) -> HttpResponse:
     tickets = Ticket.objects.filter(cliente=request.user)
     return render(request, "tickets/meus_tickets.html", {"tickets": tickets})
 
-# --- DETALHE DO TICKET (NOVO) ---
+# --- DETALHE DO TICKET ---
 @login_required(login_url="/login/")
 def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
     """
@@ -41,7 +41,7 @@ def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
     ticket = get_object_or_404(Ticket, pk=pk, cliente=request.user)
     return render(request, "tickets/detalhe_ticket.html", {"ticket": ticket})
 
-# --- CRIAR TICKET (ATUALIZADO FASE 2) ---
+# --- CRIAR TICKET ---
 @login_required(login_url="/login/")
 def criar_ticket(request: HttpRequest) -> HttpResponse:
     
