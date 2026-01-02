@@ -31,7 +31,7 @@ class EmailAuthenticationForm(AuthenticationForm):
 
     error_messages = {
         'invalid_login': "Login inválido. E-mail ou senha incorretos.",
-        'inactive': "Esta conta está inativa. Entre em contato com o administrador.",
+        'inactive': "Esta conta está inativa. Entre em contato com o suporte.",
     }
 
     def __init__(self, request: Any = None, *args: Any, **kwargs: Any) -> None:
