@@ -113,9 +113,7 @@
                     <label for="descricao">Descrição Detalhada do Problema *</label>
                     
                     {% if form.descricao.errors %}
-                        <div class="invalid-feedback text-start" style="display: block;">
-                            {{ form.descricao.errors.0 }}
-                        </div>
+                        <div class="invalid-feedback text-start">{{ form.descricao.errors.0 }}</div>
                     {% endif %}
                 </div>
 
