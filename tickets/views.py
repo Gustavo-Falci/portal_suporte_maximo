@@ -4,8 +4,8 @@ from django.http import HttpResponse, HttpRequest
 from django.core.mail import EmailMessage
 from django.conf import settings
 from django.contrib import messages
-from .models import Ticket, Ambiente, Area
-from .forms import TicketForm
+from .models import Ticket, Ambiente, Area, TicketInteracao
+from .forms import TicketForm, TicketInteracaoForm
 import logging
 
 logger = logging.getLogger(__name__)
@@ -148,3 +148,46 @@ SR#TICKETID=&AUTOKEY&<br>
         "mostrar_area": mostrar_area
     }
     return render(request, "tickets/criar_ticket.html", context)
+
+@login_required(login_url="/login/")
+def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
+    """
+    Exibe detalhes do ticket e processa o chat interno.
+    Sem envio de e-mail para o Maximo nas interações.
+    """
+    ticket = get_object_or_404(Ticket, pk=pk)
+    
+    # 1. Verificação de Segurança
+    # Apenas o dono do ticket ou um Staff podem ver/interagir
+    if not request.user.is_staff and ticket.cliente != request.user:
+        messages.error(request, "Acesso negado a este ticket.")
+        return redirect("meus_tickets")
+
+    if request.method == "POST":
+        form = TicketInteracaoForm(request.POST, request.FILES)
+        if form.is_valid():
+            interacao = form.save(commit=False)
+            interacao.ticket = ticket
+            interacao.autor = request.user
+            interacao.save()
+
+            # Atualiza o timestamp do ticket principal para indicar atividade recente
+            ticket.save() 
+
+            messages.success(request, "Mensagem registrada com sucesso.")
+            # Redireciona para a mesma página para limpar o POST (PRG Pattern)
+            return redirect("detalhe_ticket", pk=pk)
+        else:
+            messages.error(request, "Erro ao enviar mensagem. Verifique os campos.")
+    else:
+        form = TicketInteracaoForm()
+
+    # Busca as interações já ordenadas pelo Model
+    interacoes = ticket.interacoes.select_related('autor').all()
+
+    context = {
+        "ticket": ticket,
+        "interacoes": interacoes,
+        "form": form
+    }
+    return render(request, "tickets/detalhe_ticket.html", context)

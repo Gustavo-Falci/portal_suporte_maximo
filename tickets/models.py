@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
+import os
 
 # --- MODELOS DE USUÁRIO E ESTRUTURA (JÁ EXISTENTES) ---
 
@@ -21,6 +22,19 @@ class Cliente(AbstractUser):
 
     class Meta:
         db_table = "clientes"
+    
+    @property
+    def is_consultor(self):
+        """Verifica se o usuário pertence ao grupo 'Consultores'."""
+        return self.groups.filter(name='Consultores').exists()
+
+    @property
+    def is_support_team(self):
+        """
+        Helper geral: Retorna True se for Staff (Admin) OU Consultor.
+        Usado para dar permissões de visualização.
+        """
+        return self.is_staff or self.is_consultor
 
 class Ambiente(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="ambientes")
@@ -145,3 +159,47 @@ class Ticket(models.Model):
         # Azul (Padrão para Novo)
         else:
             return 'bg-primary'
+
+class TicketInteracao(models.Model):
+    ticket = models.ForeignKey(
+        Ticket, 
+        on_delete=models.CASCADE, 
+        related_name="interacoes"
+    )
+    autor = models.ForeignKey(
+        Cliente, 
+        on_delete=models.CASCADE,
+        verbose_name="Autor"
+    )
+    mensagem = models.TextField(verbose_name="Mensagem")
+    anexo = models.FileField(
+        upload_to="interacoes_anexos/", 
+        null=True, 
+        blank=True,
+        verbose_name="Anexo (Opcional)"
+    )
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['data_criacao'] # Ordem cronológica
+        db_table = "ticket_interacoes"
+        verbose_name = "Interação"
+        verbose_name_plural = "Interações"
+
+    def __str__(self):
+        return f"Msg de {self.autor.username} em {self.ticket.id}"
+
+    @property
+    def is_support(self):
+        """
+        Verifica se a mensagem deve aparecer como 'Suporte' no chat.
+        Isso agora inclui Admins E Consultores.
+        """
+        return self.autor.is_support_team
+    
+    @property
+    def filename(self):
+        """Retorna apenas o nome do arquivo, sem o caminho completo."""
+        if self.anexo:
+            return os.path.basename(self.anexo.name)
+        return None

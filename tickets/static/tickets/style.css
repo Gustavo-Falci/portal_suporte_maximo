@@ -142,3 +142,108 @@ body {
     font-weight: bold;
     font-size: 12px;
 }
+
+/* Chat / Timeline Styling */
+.font-monospace {
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+
+/* Diferenciação de mensagens */
+.chat-timeline .border-primary {
+    border-color: var(--ibm-blue-60) !important;
+}
+
+.chat-timeline .bg-primary {
+    background-color: var(--ibm-blue-60) !important;
+}
+
+/* Ajuste nos campos de formulário dentro do chat */
+.chat-section textarea.form-control {
+    border-radius: 0;
+    border: 1px solid #8d8d8d;
+    resize: vertical;
+}
+
+.chat-section textarea.form-control:focus {
+    outline: 2px solid var(--ibm-blue-60);
+    border-color: transparent;
+}
+
+/* Tamanho de fonte utilitário */
+.fs-7 {
+    font-size: 0.85rem;
+}
+
+/* Container da linha da mensagem */
+.chat-row {
+    display: flex;
+    align-items: flex-end; /* Alinha o avatar com o final do balão (fundo) */
+    margin-bottom: 1.5rem;
+    width: 100%;
+}
+
+/* O Balão */
+.chat-bubble {
+    max-width: 75%;
+    width: fit-content;
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* O Avatar (Imagem ao lado) */
+.chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0; /* Não deixa o avatar espremer */
+}
+
+/* --- CONFIGURAÇÃO: EU (Direita) --- */
+.chat-me {
+    justify-content: flex-end; /* Joga tudo para a direita */
+}
+
+.chat-me .chat-bubble {
+    margin-right: 10px; /* Espaço entre balão e avatar */
+    background-color: #e5f6ff; 
+    border: 1px solid #cceeff;
+    border-bottom-right-radius: 0;
+}
+
+.chat-me .chat-avatar {
+    background-color: var(--ibm-blue-60); /* Azul IBM */
+    order: 2; /* Avatar fica DEPOIS do balão visualmente */
+}
+
+/* --- CONFIGURAÇÃO: OUTROS (Esquerda) --- */
+.chat-other {
+    justify-content: flex-start; /* Mantém na esquerda */
+}
+
+.chat-other .chat-bubble {
+    margin-left: 10px; /* Espaço entre avatar e balão */
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-bottom-left-radius: 0;
+}
+
+.chat-other .chat-avatar {
+    background-color: #8d8d8d; /* Cinza para outros */
+    order: 0; /* Avatar fica ANTES do balão */
+}
+
+/* Destaque para Suporte no avatar */
+.avatar-support {
+    background-color: #0043ce !important; /* Azul escuro IBM */
+}
+
+/* Utilitário de Texto */
+.text-uppercase {
+    text-transform: uppercase !important;
+}

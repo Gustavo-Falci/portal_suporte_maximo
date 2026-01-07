@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Cliente, Ambiente, Area, Ticket
+from .models import Cliente, Ambiente, Area, Ticket, TicketInteracao
 
 # 1. Customização do Cabeçalho e Título do Admin (Visual Corporativo)
 admin.site.site_header = "Portal de Suporte | Administração"
@@ -84,3 +84,17 @@ class TicketAdmin(admin.ModelAdmin):
     
     # Ordena do mais recente para o mais antigo
     ordering = ('-data_criacao',)
+
+@admin.register(TicketInteracao)
+class TicketInteracaoAdmin(admin.ModelAdmin):
+    """
+    Permite visualizar o histórico de conversas pelo Admin.
+    """
+    list_display = ('id', 'ticket', 'autor', 'data_criacao', 'tem_anexo')
+    list_filter = ('data_criacao',)
+    search_fields = ('mensagem', 'ticket__id', 'autor__username', 'autor__email')
+    autocomplete_fields = ['ticket', 'autor']
+
+    @admin.display(boolean=True, description='Anexo?')
+    def tem_anexo(self, obj):
+        return bool(obj.anexo)

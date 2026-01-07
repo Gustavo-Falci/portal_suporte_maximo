@@ -21,6 +21,7 @@
 
     <div class="row">
         <div class="col-md-8">
+            
             <div class="card shadow-sm rounded-0 mb-4">
                 <div class="card-header bg-light fw-bold">
                     Descrição
@@ -33,9 +34,9 @@
             </div>
 
             {% if ticket.arquivo %}
-            <div class="card shadow-sm rounded-0">
+            <div class="card shadow-sm rounded-0 mb-5">
                 <div class="card-header bg-light fw-bold">
-                    Anexo Enviado
+                    Anexo Inicial
                 </div>
                 <div class="card-body">
                     <p class="mb-0">
@@ -49,6 +50,93 @@
                 </div>
             </div>
             {% endif %}
+
+            <div class="d-flex align-items-center mb-3 mt-5">
+                <h4 class="h5 fw-bold mb-0">Chat</h4>
+                <div class="flex-grow-1 ms-3 border-bottom"></div>
+            </div>
+
+            <div class="interacoes-container mb-4 p-4 bg-light border-start border-end" style="max-height: 600px; overflow-y: auto;">
+                {% for msg in interacoes %}
+                    
+                    <div class="chat-row {% if msg.autor == request.user %}chat-me{% else %}chat-other{% endif %}">
+                        
+                        <div class="chat-avatar shadow-sm {% if msg.is_support %}avatar-support{% endif %}" title="{{ msg.autor.get_full_name }}">
+                            {% if msg.is_support %}
+                                <i class="bi bi-headset" style="font-size: 1.2rem;"></i>
+                            {% else %}
+                                <i class="bi bi-person-fill"></i>
+                            {% endif %}
+                        </div>
+
+                        <div class="card chat-bubble">
+                            <div class="card-header rounded-0 py-2 d-flex justify-content-between align-items-center {% if msg.is_support %}bg-primary text-white{% else %}bg-light{% endif %}">
+                                <small class="fw-bold text-uppercase" style="font-size: 0.75rem;">
+                                    {% if msg.is_support %}
+                                        🛠️ Suporte Técnico
+                                    {% else %}
+                                        👤 {{ msg.autor.get_full_name|default:msg.autor.username }}
+                                    {% endif %}
+                                </small>
+                                <small class="font-monospace ms-3" style="font-size: 0.7rem; opacity: 0.9;">
+                                    {{ msg.data_criacao|date:"d/m/Y H:i" }}
+                                </small>
+                            </div>
+
+                            <div class="card-body pt-1 pb-2 px-3">
+                                <p class="mb-1 text-dark" style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.4;">{{ msg.mensagem }}</p>
+                                
+                                {% if msg.anexo %}
+                                    <div class="mt-2 pt-2 border-top">
+                                        <small>
+                                            <a href="{{ msg.anexo.url }}" target="_blank" class="text-decoration-none d-flex align-items-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-paperclip me-1" viewBox="0 0 16 16">
+                                                    <path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0V3z"/>
+                                                </svg>
+                                                Anexo: {{ msg.filename }}
+                                            </a>
+                                        </small>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                    </div>
+
+                {% empty %}
+                    <div class="text-center py-5 text-muted opacity-50">
+                        <i class="bi bi-chat-square-text fs-1 mb-2"></i>
+                        <p>Inicie a conversa enviando uma mensagem abaixo.</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="card bg-light border-0 rounded-0 mb-5">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">Nova Mensagem</h6>
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            {{ form.mensagem }}
+                        </div>
+                        
+                        <div class="row align-items-center">
+                            <div class="col-md-8 mb-2 mb-md-0">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text rounded-0 bg-white border-secondary border-opacity-25">📎 Anexar</span>
+                                    {{ form.anexo }}
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button type="submit" class="btn btn-primary rounded-0 px-4 w-100">
+                                    Enviar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
 
         <div class="col-md-4">

@@ -3,7 +3,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 from typing import Any
 import os
-from .models import Ambiente, Area, Ticket
+from .models import Ambiente, Area, Ticket, TicketInteracao
 
 # ==============================================================================
 # 1. FORMULÁRIO DE LOGIN (MANTIDO IDÊNTICO)
@@ -98,3 +98,19 @@ class TicketForm(forms.ModelForm):
                 raise ValidationError(f"Extensão '{ext}' não permitida. Use: PDF, Imagens, Logs, Excel ou Word")
                 
         return arquivo
+    
+class TicketInteracaoForm(forms.ModelForm):
+    """
+    Formulário para adicionar comentários/respostas ao ticket.
+    """
+    class Meta:
+        model = TicketInteracao
+        fields = ['mensagem', 'anexo']
+        widgets = {
+            'mensagem': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Digite sua resposta ou atualização aqui...'
+            }),
+            'anexo': forms.FileInput(attrs={'class': 'form-control'}),
+        }
