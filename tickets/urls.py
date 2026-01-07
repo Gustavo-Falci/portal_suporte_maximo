@@ -24,4 +24,6 @@ urlpatterns = [
 
     path("meus-tickets/", views.meus_tickets, name="meus_tickets"),
     path("ticket/<int:pk>/", views.detalhe_ticket, name="detalhe_ticket"),
+
+    path("fila-atendimento/", views.fila_atendimento, name="fila_atendimento"),
 ]

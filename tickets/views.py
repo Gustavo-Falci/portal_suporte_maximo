@@ -4,8 +4,9 @@ from django.http import HttpResponse, HttpRequest
 from django.core.mail import EmailMessage
 from django.conf import settings
 from django.contrib import messages
-from .models import Ticket, Ambiente, Area, TicketInteracao
+from .models import Ticket, Ambiente, Area, TicketInteracao, Cliente
 from .forms import TicketForm, TicketInteracaoForm
+from django.db.models import Q
 import logging
 
 logger = logging.getLogger(__name__)
@@ -157,10 +158,19 @@ def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
     """
     ticket = get_object_or_404(Ticket, pk=pk)
     
-    # 1. Verificação de Segurança
-    # Apenas o dono do ticket ou um Staff podem ver/interagir
-    if not request.user.is_staff and ticket.cliente != request.user:
-        messages.error(request, "Acesso negado a este ticket.")
+    tem_permissao = False
+
+    # 1. Se for da equipe de suporte (Consultor ou Admin), libera
+    if request.user.is_support_team:
+        tem_permissao = True
+    
+    # 2. Se for o dono do ticket, libera
+    elif ticket.cliente == request.user:
+        tem_permissao = True
+
+    # 3. Se não atendeu nenhuma das regras acima, bloqueia
+    if not tem_permissao:
+        messages.error(request, "Você não tem permissão para visualizar este ticket.")
         return redirect("meus_tickets")
 
     if request.method == "POST":
@@ -191,3 +201,66 @@ def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
         "form": form
     }
     return render(request, "tickets/detalhe_ticket.html", context)
+
+@login_required(login_url="/login/")
+def fila_atendimento(request: HttpRequest) -> HttpResponse:
+    """
+    Exibe TODOS os tickets com filtros avançados para a equipe de suporte.
+    """
+    # 1. Segurança
+    if not request.user.is_support_team:
+        messages.warning(request, "Acesso restrito à equipe de suporte.")
+        return redirect("meus_tickets")
+
+    # 2. Base da Query
+    tickets = Ticket.objects.all().select_related('cliente', 'ambiente').order_by('-data_criacao')
+
+    # 3. Captura dos Filtros via GET
+    status_filter = request.GET.get('status')
+    location_filter = request.GET.get('location')
+    search_query = request.GET.get('q')
+
+    # 4. Aplicação dos Filtros
+    if status_filter:
+        tickets = tickets.filter(status_maximo=status_filter)
+    
+    if location_filter:
+        # Filtra tickets onde o 'location' do cliente é igual ao selecionado
+        tickets = tickets.filter(cliente__location=location_filter)
+
+    if search_query:
+        # Busca por ID, Título, Descrição ou Nome do Cliente
+        tickets = tickets.filter(
+            Q(id__icontains=search_query) |
+            Q(sumario__icontains=search_query) |
+            Q(descricao__icontains=search_query) |
+            Q(cliente__username__icontains=search_query) |
+            Q(cliente__first_name__icontains=search_query) |
+            Q(cliente__location__icontains=search_query)
+        )
+
+    # 5. Dados para popular os Dropdowns do Filtro
+    # Pega apenas clientes que não são staff/suporte para limpar a lista
+    lista_locations = Cliente.objects.values_list('location', flat=True)\
+                                     .exclude(location__isnull=True)\
+                                     .exclude(location__exact='')\
+                                     .distinct()\
+                                     .order_by('location')
+    
+    status_choices = Ticket.MAXIMO_STATUS_CHOICES
+
+    # 6. Estatísticas Rápidas (Opcional, mas fica pro)
+    stats = {
+        'total': tickets.count(),
+        'criticos': tickets.filter(prioridade=1).count(),
+        'novos': tickets.filter(status_maximo='NEW').count()
+    }
+
+    context = {
+        "tickets": tickets,
+        "lista_locations": lista_locations,
+        "status_choices": status_choices,
+        "filtros_atuais": request.GET, # Para manter o form preenchido
+        "stats": stats
+    }
+    return render(request, "tickets/fila_atendimento.html", context)

@@ -70,10 +70,10 @@
                         </div>
 
                         <div class="card chat-bubble">
-                            <div class="card-header rounded-0 py-2 d-flex justify-content-between align-items-center {% if msg.is_support %}bg-primary text-white{% else %}bg-light{% endif %}">
+                            <div class="card-header rounded-0 py-2 d-flex justify-content-between align-items-center ">
                                 <small class="fw-bold text-uppercase" style="font-size: 0.75rem;">
                                     {% if msg.is_support %}
-                                        🛠️ Suporte Técnico
+                                        🛠️ {{ msg.autor.get_full_name|default:msg.autor.username }}
                                     {% else %}
                                         👤 {{ msg.autor.get_full_name|default:msg.autor.username }}
                                     {% endif %}

@@ -247,3 +247,48 @@ body {
 .text-uppercase {
     text-transform: uppercase !important;
 }
+
+.input-group-text {
+    background-color: #f4f4f4 !important; 
+    border: 1px solid #8d8d8d;
+    border-right: none;
+    color: #525252; /* Cor do ícone */
+}
+
+/* Input sem borda esquerda para colar no ícone */
+.input-group .form-control.border-start-0 {
+    border-left: none;
+    background-color: #f4f4f4; /* Garante que o campo de texto também seja cinza */
+}
+
+/* Quando clica para digitar (Foco) */
+.input-group .form-control:focus {
+    box-shadow: none;
+    background-color: #ffffff; /* Fica branco para dar destaque ao digitar (Opcional) */
+    border-color: #8d8d8d;
+    outline: 2px solid var(--ibm-blue-60); /* Borda azul IBM */
+    outline-offset: -2px;
+    z-index: 5;
+}
+
+/* Efeito Hover no Card do Ticket */
+.ticket-card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ticket-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    border-color: var(--ibm-blue-60) !important; /* Borda esquerda muda de cor */
+}
+
+.hover-link:hover {
+    color: var(--ibm-blue-60) !important;
+    text-decoration: underline !important;
+}
+
+/* Avatar Placeholder */
+.avatar-circle {
+    font-size: 0.9rem;
+    background-color: #525252 !important; /* IBM Gray 70 */
+}
