@@ -4,6 +4,7 @@ from django.http import HttpResponse, HttpRequest, FileResponse, Http404
 from django.core.mail import EmailMessage
 from django.conf import settings
 from django.contrib import messages
+from django.urls import reverse
 from .models import Ticket, Ambiente, Area, TicketInteracao, Cliente
 from .forms import TicketForm, TicketInteracaoForm
 from django.db.models import Q
@@ -37,11 +38,63 @@ def meus_tickets(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="/login/")
 def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Exibe os detalhes de um ticket específico.
+    Exibe detalhes do ticket, processa o chat interno e controla a navegação de "Voltar".
     """
-    # Garante que o usuário só veja seus próprios tickets
-    ticket = get_object_or_404(Ticket, pk=pk, cliente=request.user)
-    return render(request, "tickets/detalhe_ticket.html", {"ticket": ticket})
+    # 1. Busca Ticket
+    ticket = get_object_or_404(Ticket, pk=pk)
+    
+    # 2. Captura a origem da URL (ex: ?origin=fila)
+    # Isso é essencial para o botão "Voltar" saber para onde ir
+    origem = request.GET.get('origin')
+
+    # 3. Segurança (Lógica consolidada)
+    tem_permissao = False
+    
+    # Se for staff/consultor OU dono do ticket
+    if request.user.is_support_team or ticket.cliente == request.user:
+        tem_permissao = True
+
+    if not tem_permissao:
+        messages.error(request, "Você não tem permissão para visualizar este ticket.")
+        return redirect("meus_tickets")
+
+    # 4. Chat (POST)
+    if request.method == "POST":
+        form = TicketInteracaoForm(request.POST, request.FILES)
+        if form.is_valid():
+            interacao = form.save(commit=False)
+            interacao.ticket = ticket
+            interacao.autor = request.user
+            interacao.save()
+            
+            # Atualiza data de modificação do ticket (importante para ordenação)
+            ticket.save() 
+
+            messages.success(request, "Mensagem registrada com sucesso.")
+            
+            # 5. Redirecionamento Inteligente (Mantém o ?origin=fila após o POST)
+            # Sem isso, ao enviar uma mensagem, o botão voltar quebraria
+            url_destino = reverse('detalhe_ticket', args=[pk])
+            if origem:
+                return redirect(f"{url_destino}?origin={origem}")
+            return redirect(url_destino)
+            
+        else:
+            messages.error(request, "Erro ao enviar mensagem. Verifique os campos.")
+    else:
+        form = TicketInteracaoForm()
+
+    # 6. Busca as mensagens
+    interacoes = ticket.interacoes.select_related('autor').all()
+
+    # 7. Contexto
+    context = {
+        "ticket": ticket,
+        "interacoes": interacoes,
+        "form": form,
+        "origem": origem  
+    }
+    return render(request, "tickets/detalhe_ticket.html", context)
 
 # --- CRIAR TICKET ---
 @login_required(login_url="/login/")
@@ -154,26 +207,26 @@ SR#TICKETID=&AUTOKEY&<br>
 @login_required(login_url="/login/")
 def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Exibe detalhes do ticket e processa o chat interno.
-    Sem envio de e-mail para o Maximo nas interações.
+    Exibe detalhes do ticket, processa o chat interno e controla a navegação de "Voltar".
     """
+    # 1. Busca Ticket
     ticket = get_object_or_404(Ticket, pk=pk)
     
+    # 2. Captura a origem da URL (ex: ?origin=fila)
+    # Isso é essencial para o botão "Voltar" saber para onde ir
+    origem = request.GET.get('origin')
+
     tem_permissao = False
-
-    # 1. Se for da equipe de suporte (Consultor ou Admin), libera
-    if request.user.is_support_team:
-        tem_permissao = True
     
-    # 2. Se for o dono do ticket, libera
-    elif ticket.cliente == request.user:
+    # Se for staff/consultor OU dono do ticket
+    if request.user.is_support_team or ticket.cliente == request.user:
         tem_permissao = True
 
-    # 3. Se não atendeu nenhuma das regras acima, bloqueia
     if not tem_permissao:
         messages.error(request, "Você não tem permissão para visualizar este ticket.")
         return redirect("meus_tickets")
 
+    # 4. Chat (POST)
     if request.method == "POST":
         form = TicketInteracaoForm(request.POST, request.FILES)
         if form.is_valid():
@@ -181,25 +234,33 @@ def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
             interacao.ticket = ticket
             interacao.autor = request.user
             interacao.save()
-
-            # Atualiza o timestamp do ticket principal para indicar atividade recente
+            
+            # Atualiza data de modificação do ticket (importante para ordenação)
             ticket.save() 
 
             messages.success(request, "Mensagem registrada com sucesso.")
-            # Redireciona para a mesma página para limpar o POST (PRG Pattern)
-            return redirect("detalhe_ticket", pk=pk)
+            
+            # 5. Redirecionamento Inteligente (Mantém o ?origin=fila após o POST)
+            # Sem isso, ao enviar uma mensagem, o botão voltar quebraria
+            url_destino = reverse('detalhe_ticket', args=[pk])
+            if origem:
+                return redirect(f"{url_destino}?origin={origem}")
+            return redirect(url_destino)
+            
         else:
             messages.error(request, "Erro ao enviar mensagem. Verifique os campos.")
     else:
         form = TicketInteracaoForm()
 
-    # Busca as interações já ordenadas pelo Model
+    # 6. Busca as mensagens
     interacoes = ticket.interacoes.select_related('autor').all()
 
+    # 7. Contexto
     context = {
         "ticket": ticket,
         "interacoes": interacoes,
-        "form": form
+        "form": form,
+        "origem": origem 
     }
     return render(request, "tickets/detalhe_ticket.html", context)
 
