@@ -5,9 +5,8 @@ from typing import Any
 import os
 from .models import Ambiente, Area, Ticket, TicketInteracao
 
-# ==============================================================================
+
 # 1. FORMULÁRIO DE LOGIN (MANTIDO IDÊNTICO)
-# ==============================================================================
 class EmailAuthenticationForm(AuthenticationForm):
     """
     Formulário de autenticação customizado para usar E-mail como login.
@@ -38,9 +37,7 @@ class EmailAuthenticationForm(AuthenticationForm):
         super().__init__(request, *args, **kwargs)
 
 
-# ==============================================================================
 # 2. FORMULÁRIO DE TICKET
-# ==============================================================================
 class TicketForm(forms.ModelForm):
     """
     ModelForm para Ticket.

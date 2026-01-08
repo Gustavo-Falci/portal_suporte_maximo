@@ -20,9 +20,9 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# =========================================================
+
 # CONFIGURAÇÕES BÁSICAS
-# =========================================================
+
 
 # Lê do .env. Se não achar, usa uma chave insegura 
 SECRET_KEY = os.getenv('SECRET_KEY')
@@ -33,9 +33,9 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
-# =========================================================
+
 # APLICAÇÕES E MIDDLEWARE
-# =========================================================
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -77,9 +77,9 @@ TEMPLATES = [
 WSGI_APPLICATION = "portal_suporte.wsgi.application"
 
 
-# =========================================================
+
 # BANCO DE DADOS
-# =========================================================
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -92,9 +92,9 @@ DATABASES = {
 }
 
 
-# =========================================================
+
 # VALIDAÇÃO DE SENHA E I18N
-# =========================================================
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -108,9 +108,9 @@ USE_I18N = True
 USE_TZ = True
 
 
-# =========================================================
+
 # ARQUIVOS ESTÁTICOS E MÍDIA
-# =========================================================
+
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
@@ -123,9 +123,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 
-# =========================================================
+
 # AUTENTICAÇÃO E LOGIN
-# =========================================================
+
 AUTH_USER_MODEL = "tickets.Cliente"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "pagina_inicial"
@@ -137,9 +137,9 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-# =========================================================
+
 # E-MAIL (SMTP)
-# =========================================================
+
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "mail.iiotconsol.com" 
 EMAIL_PORT = 465
@@ -153,9 +153,9 @@ EMAIL_DESTINATION = os.getenv('SUPORTE_DESTINATION_EMAIL')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
-# =========================================================
+
 # CONFIGURAÇÕES DE SEGURANÇA E AMBIENTE
-# =========================================================
+
 
 DEBUG=True
 

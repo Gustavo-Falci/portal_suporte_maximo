@@ -7,9 +7,6 @@ admin.site.site_header = "Portal de Suporte | Administração"
 admin.site.site_title = "IT Consol Admin"
 admin.site.index_title = "Gestão de Usuários e Ativos"
 
-# ATENÇÃO: Removi as linhas 'admin.site.register(...)' que estavam soltas aqui.
-# Usaremos apenas os decoradores (@admin.register) abaixo para evitar o erro de duplicidade.
-
 @admin.register(Cliente)
 class ClienteAdmin(UserAdmin):
     """
