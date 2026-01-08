@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpRequest
+from django.http import HttpResponse, HttpRequest, FileResponse, Http404
 from django.core.mail import EmailMessage
 from django.conf import settings
 from django.contrib import messages
@@ -8,6 +8,7 @@ from .models import Ticket, Ambiente, Area, TicketInteracao, Cliente
 from .forms import TicketForm, TicketInteracaoForm
 from django.db.models import Q
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -264,3 +265,46 @@ def fila_atendimento(request: HttpRequest) -> HttpResponse:
         "stats": stats
     }
     return render(request, "tickets/fila_atendimento.html", context)
+
+@login_required(login_url="/login/")
+def download_anexo_interacao(request: HttpRequest, interacao_id: int) -> HttpResponse:
+    """
+    Serve o anexo de forma segura e trata erros caso o arquivo não exista.
+    """
+    # 1. Busca a interação ou retorna 404 se o ID não existir no banco
+    interacao = get_object_or_404(TicketInteracao, pk=interacao_id)
+    ticket = interacao.ticket
+
+    # 2. Segurança: Verifica se o usuário é o dono do ticket OU da equipe de suporte
+    # (Reaproveitando a lógica is_support_team do seu Model Cliente)
+    if ticket.cliente != request.user and not request.user.is_support_team:
+        messages.error(request, "Você não tem permissão para acessar este arquivo.")
+        return redirect("detalhe_ticket", pk=ticket.id)
+
+    # 3. Verifica se o campo anexo está preenchido
+    if not interacao.anexo:
+        messages.warning(request, "Esta interação não possui anexo.")
+        return redirect("detalhe_ticket", pk=ticket.id)
+
+    try:
+        # 4. Tenta abrir o arquivo
+        # O .path pode falhar dependendo do Storage (S3 vs Local), 
+        # mas .open() é o método agnóstico do Django.
+        arquivo = interacao.anexo.open()
+        
+        # Opcional: Definir o nome do arquivo no download
+        filename = os.path.basename(interacao.anexo.name)
+        
+        # Retorna o arquivo como download (as_attachment=True) 
+        # ou visualização no navegador (as_attachment=False)
+        return FileResponse(arquivo, as_attachment=True, filename=filename)
+
+    except FileNotFoundError:
+        # 5. Tratamento de Erro: Arquivo consta no banco, mas não no disco
+        messages.error(request, "Arquivo indisponivel, contate o suporte.")
+        return redirect("detalhe_ticket", pk=ticket.id)
+        
+    except Exception as e:
+        # 6. Erro genérico (ex: permissão de leitura no disco, erro de IO)
+        messages.error(request, f"Erro ao tentar abrir o anexo: {str(e)}")
+        return redirect("detalhe_ticket", pk=ticket.id)

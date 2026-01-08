@@ -61,6 +61,25 @@
     </nav>
 
     <main class="container mb-5" style="padding-top: 120px;">
+        <div class="container mt-3">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                        {% if message.level_tag == 'error' %}
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        {% elif message.level_tag == 'success' %}
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                        {% endif %}
+                        
+                        {{ message }}
+                        
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
         {% block content %}{% endblock %}
     </main>
 

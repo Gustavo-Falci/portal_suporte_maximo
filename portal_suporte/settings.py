@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from django.contrib.messages import constants as messages
 
 # Carrega o .env
 load_dotenv()
@@ -177,3 +178,12 @@ else:
 # Configurações de Arquivos de Mídia (Uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Mapeamento de Tags do Django para Classes CSS do Bootstrap
+MESSAGE_TAGS = {
+    messages.DEBUG: 'secondary',
+    messages.INFO: 'info',
+    messages.SUCCESS: 'success',
+    messages.WARNING: 'warning',
+    messages.ERROR: 'danger', # Transforma 'error' em 'alert-danger' (Vermelho)
+}

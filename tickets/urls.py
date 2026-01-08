@@ -26,4 +26,6 @@ urlpatterns = [
     path("ticket/<int:pk>/", views.detalhe_ticket, name="detalhe_ticket"),
 
     path("fila-atendimento/", views.fila_atendimento, name="fila_atendimento"),
+
+    path("interacao/anexo/<int:interacao_id>/", views.download_anexo_interacao, name="download_anexo"),
 ]

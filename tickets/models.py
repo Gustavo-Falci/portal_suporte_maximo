@@ -201,5 +201,5 @@ class TicketInteracao(models.Model):
     def filename(self):
         """Retorna apenas o nome do arquivo, sem o caminho completo."""
         if self.anexo:
-            return os.path.basename(self.anexo.name)
+            return os.path.basename(self.anexo.name) if self.anexo else ''
         return None
