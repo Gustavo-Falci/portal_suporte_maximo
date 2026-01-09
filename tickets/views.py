@@ -35,66 +35,6 @@ def meus_tickets(request: HttpRequest) -> HttpResponse:
     return render(request, "tickets/meus_tickets.html", {"tickets": tickets})
 
 # --- DETALHE DO TICKET ---
-@login_required(login_url="/login/")
-def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
-    """
-    Exibe detalhes do ticket, processa o chat interno e controla a navegação de "Voltar".
-    """
-    # 1. Busca Ticket
-    ticket = get_object_or_404(Ticket, pk=pk)
-    
-    # 2. Captura a origem da URL (ex: ?origin=fila)
-    # Isso é essencial para o botão "Voltar" saber para onde ir
-    origem = request.GET.get('origin')
-
-    # 3. Segurança (Lógica consolidada)
-    tem_permissao = False
-    
-    # Se for staff/consultor OU dono do ticket
-    if request.user.is_support_team or ticket.cliente == request.user:
-        tem_permissao = True
-
-    if not tem_permissao:
-        messages.error(request, "Você não tem permissão para visualizar este ticket.")
-        return redirect("meus_tickets")
-
-    # 4. Chat (POST)
-    if request.method == "POST":
-        form = TicketInteracaoForm(request.POST, request.FILES)
-        if form.is_valid():
-            interacao = form.save(commit=False)
-            interacao.ticket = ticket
-            interacao.autor = request.user
-            interacao.save()
-            
-            # Atualiza data de modificação do ticket (importante para ordenação)
-            ticket.save() 
-
-            messages.success(request, "Mensagem registrada com sucesso.")
-            
-            # 5. Redirecionamento Inteligente (Mantém o ?origin=fila após o POST)
-            # Sem isso, ao enviar uma mensagem, o botão voltar quebraria
-            url_destino = reverse('detalhe_ticket', args=[pk])
-            if origem:
-                return redirect(f"{url_destino}?origin={origem}")
-            return redirect(url_destino)
-            
-        else:
-            messages.error(request, "Erro ao enviar mensagem. Verifique os campos.")
-    else:
-        form = TicketInteracaoForm()
-
-    # 6. Busca as mensagens
-    interacoes = ticket.interacoes.select_related('autor').all()
-
-    # 7. Contexto
-    context = {
-        "ticket": ticket,
-        "interacoes": interacoes,
-        "form": form,
-        "origem": origem  
-    }
-    return render(request, "tickets/detalhe_ticket.html", context)
 
 # --- CRIAR TICKET ---
 @login_required(login_url="/login/")
@@ -204,6 +144,7 @@ SR#TICKETID=&AUTOKEY&<br>
     }
     return render(request, "tickets/criar_ticket.html", context)
 
+# --- DETALHE DO TICKET ---
 @login_required(login_url="/login/")
 def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
     """
