@@ -175,11 +175,16 @@ def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
             interacao.ticket = ticket
             interacao.autor = request.user
             interacao.save()
+
+            # Notificação por E-mail 
+            try:
+                _enviar_notificacao_chat(ticket, interacao, request.user)
+            except Exception as e:
+                # Loga o erro mas não trava a tela do usuário
+                logger.error(f"Erro ao enviar notificação de chat no ticket {ticket.maximo_id}: {e}")
             
             # Atualiza data de modificação do ticket (importante para ordenação)
             ticket.save() 
-
-            messages.success(request, "Mensagem registrada com sucesso.")
             
             # 5. Redirecionamento Inteligente (Mantém o ?origin=fila após o POST)
             # Sem isso, ao enviar uma mensagem, o botão voltar quebraria
@@ -310,3 +315,73 @@ def download_anexo_interacao(request: HttpRequest, interacao_id: int) -> HttpRes
         # 6. Erro genérico (ex: permissão de leitura no disco, erro de IO)
         messages.error(request, f"Erro ao tentar abrir o anexo: {str(e)}")
         return redirect("detalhe_ticket", pk=ticket.id)
+    
+def _enviar_notificacao_chat(ticket: Ticket, interacao: TicketInteracao, autor) -> None:
+    """
+    Envia e-mails de notificação de novas mensagens no chat.
+    
+    Lógica:
+    - Se o Autor for do Time de Suporte -> Envia e-mail para o CLIENTE.
+    - Se o Autor for o Cliente -> Envia e-mail para o SUPORTE.
+    """
+    
+    # Configuração de E-mail de Suporte (Fallback seguro caso não esteja no settings)
+    email_suporte_destino = getattr(settings, 'SUPPORT_EMAIL_ADDRESS', 'suportebr@itconsol.com')
+    remetente = settings.DEFAULT_FROM_EMAIL
+    
+    assunto = ""
+    corpo_email = ""
+    destinatarios = []
+
+    # Verifica se quem escreveu faz parte do time de suporte
+    is_support_msg = autor.is_support_team
+
+    if is_support_msg:
+        # CENÁRIO 1: Suporte respondeu -> Avisar Cliente
+        assunto = f"[Portal Suporte] Nova resposta no Ticket #{ticket.maximo_id} - {ticket.sumario}"
+        destinatarios = [ticket.cliente.email]
+        
+        corpo_email = f"""
+        Olá, {ticket.cliente.first_name or ticket.cliente.username}.<br><br>
+        
+        A equipe de suporte adicionou uma nova mensagem ao seu ticket <strong>#{ticket.maximo_id}</strong>.<br><br>
+        
+        <strong>Mensagem:</strong><br>
+        <div style="background-color: #f4f4f4; padding: 10px; border-left: 4px solid #0f62fe;">
+            {interacao.mensagem}
+        </div><br><br>
+        
+        Acesse o portal para responder ou ver anexos.
+        """
+        
+    else:
+        # CENÁRIO 2: Cliente respondeu -> Avisar Suporte
+        assunto = f"[Alerta] Cliente respondeu o Ticket #{ticket.maximo_id} - {ticket.sumario}"
+        destinatarios = [email_suporte_destino]
+        
+        location_info = getattr(ticket.cliente, 'location', 'N/A')
+        
+        corpo_email = f"""
+        Equipe,<br><br>
+        
+        O cliente <strong>{ticket.cliente.username}</strong> (Local: {location_info}) enviou uma nova mensagem.<br><br>
+        
+        <strong>Ticket:</strong> #{ticket.maximo_id}<br>
+        <strong>Sumário:</strong> {ticket.sumario}<br><br>
+        
+        <strong>Mensagem:</strong><br>
+        <div style="background-color: #f4f4f4; padding: 10px; border-left: 4px solid #198038;">
+            {interacao.mensagem}
+        </div>
+        """
+
+    # Envio efetivo
+    if destinatarios:
+        email = EmailMessage(
+            subject=assunto,
+            body=corpo_email,
+            from_email=remetente,
+            to=destinatarios
+        )
+        email.content_subtype = "html" # Permite usar HTML no corpo
+        email.send()
