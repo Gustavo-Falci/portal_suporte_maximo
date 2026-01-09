@@ -12,8 +12,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # API Config
-        API_URL = "https://itc.manage.masti.apps-crc.testing/maximo/api/os/ITC_PORTAL_API"
-        API_KEY = "roqvr60ie0tihjqqvs8gprj591cueca7265r3of7"
+        API_URL = getattr(settings, 'MAXIMO_API_URL', None)
+        API_KEY = getattr(settings, 'MAXIMO_API_KEY', None)
         
         params = {
             "_dropnulls": 0,

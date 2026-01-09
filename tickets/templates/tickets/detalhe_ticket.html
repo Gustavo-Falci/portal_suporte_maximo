@@ -183,7 +183,7 @@
                         </li>
 
                         {% with user_lower=request.user.username|lower %}
-                            {% if ticket.area and "pampa" in user_lower or ticket.area and "abl" in user_lower %}
+                            {% if ticket.area and request.user.is_support_team or ticket.area and "pampa" in user_lower or ticket.area and "abl" in user_lower %}
                                 <li class="mb-2">
                                     <strong>Área:</strong><br>
                                     {{ ticket.area }}
