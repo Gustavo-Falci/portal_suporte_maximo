@@ -72,10 +72,18 @@ class TicketForm(forms.ModelForm):
         
         if user:
             self.fields['ambiente'].queryset = Ambiente.objects.filter(cliente=user)
-            self.fields['area'].queryset = Area.objects.filter(cliente=user)
-        else:
-            self.fields['ambiente'].queryset = Ambiente.objects.none()
-            self.fields['area'].queryset = Area.objects.none()
+            
+            # Lógica da Área baseada no LOCATION
+            location_str = str(user.location).upper() if user.location else ""
+            
+            # Se for PAMPA ou ABL, carrega as áreas. Caso contrário, esvazia.
+            if "PAMPA" in location_str or "ABL" in location_str:
+                self.fields['area'].queryset = Area.objects.filter(cliente=user)
+                self.fields['area'].required = True # Opcional: define se é obrigatório para esses usuários
+            else:
+                self.fields['area'].queryset = Area.objects.none()
+                self.fields['area'].required = False
+                self.fields['area'].widget = forms.HiddenInput()
         
     def clean_arquivo(self):
         """

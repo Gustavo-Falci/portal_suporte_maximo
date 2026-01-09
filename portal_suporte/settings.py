@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
 from django.contrib.messages import constants as messages
@@ -79,15 +80,23 @@ WSGI_APPLICATION = "portal_suporte.wsgi.application"
 
 # BANCO DE DADOS
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "NAME": os.getenv('DB_NAME'),
+#         "USER": os.getenv('DB_USER'),
+#         "PASSWORD": os.getenv('DB_PASSWORD'),
+#         "HOST": os.getenv('DB_HOST', 'localhost'),
+#         "PORT": "5432",
+#     }
+# }
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv('DB_NAME'),
-        "USER": os.getenv('DB_USER'),
-        "PASSWORD": os.getenv('DB_PASSWORD'),
-        "HOST": os.getenv('DB_HOST', 'localhost'),
-        "PORT": "5432",
-    }
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
 
 
@@ -111,15 +120,23 @@ USE_TZ = True
 # ARQUIVOS ESTÁTICOS E MÍDIA
 
 STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# Configuração para Uploads (Anexos dos Tickets)
+# Onde estão seus arquivos originais (CSS do Admin e do Site)
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'staticfiles'), 
+]
+
+# Onde o Django vai "juntar" tudo no deploy (Railway usa essa pasta)
+STATIC_ROOT = os.path.join(BASE_DIR, 'collected_static')
+
+# Engine de compressão do Whitenoise
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# Uploads (Anexos)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 
 
@@ -156,15 +173,7 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # CONFIGURAÇÕES DE SEGURANÇA E AMBIENTE
 
-DEBUG=True
-
-if DEBUG:
-    SECURE_SSL_REDIRECT = False
-    SESSION_COOKIE_SECURE = False
-    CSRF_COOKIE_SECURE = False
-    SECURE_HSTS_SECONDS = 0
-    
-else:
+if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -174,9 +183,8 @@ else:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# Configurações de Arquivos de Mídia (Uploads)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# CSRF para Deploy (Permite POST vindo do seu domínio https)
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost,http://127.0.0.1').split(',')
 
 # Mapeamento de Tags do Django para Classes CSS do Bootstrap
 MESSAGE_TAGS = {

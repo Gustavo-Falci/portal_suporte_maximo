@@ -34,15 +34,18 @@ def meus_tickets(request: HttpRequest) -> HttpResponse:
     tickets = Ticket.objects.filter(cliente=request.user)
     return render(request, "tickets/meus_tickets.html", {"tickets": tickets})
 
-# --- DETALHE DO TICKET ---
-
 # --- CRIAR TICKET ---
 @login_required(login_url="/login/")
 def criar_ticket(request: HttpRequest) -> HttpResponse:
     
-    # Lógica visual (quem pode ver o campo Area)
-    username_lower = request.user.username.lower()
-    mostrar_area = "pampa" in username_lower or "abl" in username_lower
+    # Type hinting para garantir que estamos lidando com o modelo Cliente customizado
+    cliente: Cliente = request.user
+    
+    # Normaliza a location para evitar erros de case (maiúscula/minúscula)
+    location_str = str(cliente.location).upper() if cliente.location else ""
+    
+    # NOVA LÓGICA: Verifica se 'PAMPA' ou 'ABL' está contido no location
+    mostrar_area = "PAMPA" in location_str or "ABL" in location_str
 
     if request.method == "POST":
         form = TicketForm(request.POST, request.FILES, user=request.user)
