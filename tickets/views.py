@@ -239,7 +239,7 @@ def fila_atendimento(request: HttpRequest) -> HttpResponse:
     if search_query:
         # Busca por ID, Título, Descrição ou Nome do Cliente
         tickets = tickets.filter(
-            Q(id__icontains=search_query) |
+            Q(maximo_id__icontains=search_query) |
             Q(sumario__icontains=search_query) |
             Q(descricao__icontains=search_query) |
             Q(cliente__username__icontains=search_query) |
