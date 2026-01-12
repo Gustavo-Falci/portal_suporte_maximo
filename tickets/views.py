@@ -347,7 +347,7 @@ def _enviar_notificacao_chat(ticket: Ticket, interacao: TicketInteracao, autor) 
         corpo_email = f"""
         Olá, {ticket.cliente.first_name or ticket.cliente.username}.<br><br>
         
-        A equipe de suporte adicionou uma nova mensagem ao seu ticket <strong>#{ticket.maximo_id}</strong>.<br><br>
+        A equipe de suporte respondeu ao seu ticket <strong>#{ticket.maximo_id}</strong>.<br><br>
         
         <strong>Mensagem:</strong><br>
         <div style="background-color: #f4f4f4; padding: 10px; border-left: 4px solid #0f62fe;">
