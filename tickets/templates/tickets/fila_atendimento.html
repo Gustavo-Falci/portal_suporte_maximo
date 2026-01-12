@@ -105,11 +105,10 @@
                                 <i class="bi bi-exclamation-triangle-fill text-danger mt-2" title="Prioridade Crítica"></i>
                             {% endif %}
                         </div>
-
                         <div class="col-md-8 p-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <h5 class="card-title mb-0 fw-bold text-dark" style="max-width: 520px;">
-                                    <a href="{% url 'detalhe_ticket' ticket.pk %}" class="text-decoration-none text-dark hover-link">
+                                    <a href="{% url 'detalhe_ticket' ticket.pk %}?origin=fila" class="text-decoration-none text-dark hover-link">
                                         {{ ticket.sumario }}
                                     </a>
                                 </h5>
