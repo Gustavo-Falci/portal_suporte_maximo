@@ -79,7 +79,7 @@ class TicketForm(forms.ModelForm):
             # Se for PAMPA ou ABL, carrega as áreas. Caso contrário, esvazia.
             if "PAMPA" in location_str or "ABL" in location_str:
                 self.fields['area'].queryset = Area.objects.filter(cliente=user)
-                self.fields['area'].required = True # Opcional: define se é obrigatório para esses usuários
+                self.fields['area'].required = False # Opcional: define se é obrigatório para esses usuários
             else:
                 self.fields['area'].queryset = Area.objects.none()
                 self.fields['area'].required = False

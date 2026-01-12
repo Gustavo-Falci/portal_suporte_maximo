@@ -33,7 +33,6 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
-
 # APLICAÇÕES E MIDDLEWARE
 
 INSTALLED_APPS = [
@@ -80,26 +79,16 @@ WSGI_APPLICATION = "portal_suporte.wsgi.application"
 
 # BANCO DE DADOS
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.postgresql",
-#         "NAME": os.getenv('DB_NAME'),
-#         "USER": os.getenv('DB_USER'),
-#         "PASSWORD": os.getenv('DB_PASSWORD'),
-#         "HOST": os.getenv('DB_HOST', 'localhost'),
-#         "PORT": "5432",
-#     }
-# }
-
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv('DB_NAME'),
+        "USER": os.getenv('DB_USER'),
+        "PASSWORD": os.getenv('DB_PASSWORD'),
+        "HOST": os.getenv('DB_HOST', 'localhost'),
+        "PORT": "5432",
+    }
 }
-
-
 
 # VALIDAÇÃO DE SENHA E I18N
 

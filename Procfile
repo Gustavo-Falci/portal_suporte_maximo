@@ -1,1 +1,0 @@
-web: gunicorn portal_suporte.wsgi:application --log-file -
