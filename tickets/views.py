@@ -8,43 +8,44 @@ from django.urls import reverse
 from .models import Ticket, Ambiente, Area, TicketInteracao, Cliente
 from .forms import TicketForm, TicketInteracaoForm
 from django.db.models import Q
+import mimetypes
 import logging
 import os
 
 logger = logging.getLogger(__name__)
 
-# --- PÁGINA INICIAL ---
+# PÁGINA INICIAL 
 def pagina_inicial(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return render(request, "tickets/bem_vindo.html")
     else:
         return redirect("login")
 
-# --- SUCESSO ---
+# SUCESSO 
 @login_required(login_url="/login/")
 def ticket_sucesso(request: HttpRequest) -> HttpResponse:
     return render(request, "tickets/sucesso.html")
 
-# --- LISTAGEM DE TICKETS ---
+# LISTAGEM DE TICKETS
 @login_required(login_url="/login/")
 def meus_tickets(request: HttpRequest) -> HttpResponse:
     """
     Exibe a lista de tickets abertos pelo usuário logado.
     """
-    tickets = Ticket.objects.filter(cliente=request.user)
+    # select_related busca as ForeignKeys numa única query SQL (JOIN)
+    tickets = Ticket.objects.filter(cliente=request.user).select_related('area', 'ambiente').order_by('-data_criacao')
+    
     return render(request, "tickets/meus_tickets.html", {"tickets": tickets})
 
-# --- CRIAR TICKET ---
+# CRIAR TICKET
 @login_required(login_url="/login/")
 def criar_ticket(request: HttpRequest) -> HttpResponse:
     
     # Type hinting para garantir que estamos lidando com o modelo Cliente customizado
     cliente: Cliente = request.user
-    
     # Normaliza a location para evitar erros de case (maiúscula/minúscula)
     location_str = str(cliente.location).upper() if cliente.location else ""
-    
-    # NOVA LÓGICA: Verifica se 'PAMPA' ou 'ABL' está contido no location
+    # Verifica se 'PAMPA' ou 'ABL' está contido no location
     mostrar_area = "PAMPA" in location_str or "ABL" in location_str
 
     if request.method == "POST":
@@ -119,8 +120,21 @@ SR#TICKETID=&AUTOKEY&<br>
                 
                 # Anexa o arquivo se existir (usando o campo do Model)
                 if ticket.arquivo:
-                    # ticket.arquivo.read() lê o arquivo do storage
-                    email.attach(ticket.arquivo.name, ticket.arquivo.read(), "application/octet-stream")
+                    # 1. Pega o nome do arquivo
+                    nome_arquivo = ticket.arquivo.name
+                    
+                    # 2. Lê o conteúdo binário
+                    conteudo_arquivo = ticket.arquivo.read()
+                    
+                    # 3. Descobre o MIME Type pela extensão (Ex: .pdf -> application/pdf)
+                    mime_type, _ = mimetypes.guess_type(nome_arquivo)
+                    
+                    # Fallback de segurança: Se não conseguir identificar, usa um tipo genérico binário
+                    if mime_type is None:
+                        mime_type = 'application/octet-stream'
+
+                    # 4. Anexa com segurança
+                    email.attach(nome_arquivo, conteudo_arquivo, mime_type)
                 
                 email.content_subtype = "html" # Importante para as tags <br> funcionarem
                 email.send()
@@ -147,7 +161,7 @@ SR#TICKETID=&AUTOKEY&<br>
     }
     return render(request, "tickets/criar_ticket.html", context)
 
-# --- DETALHE DO TICKET ---
+# DETALHE DO TICKET
 @login_required(login_url="/login/")
 def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
     """

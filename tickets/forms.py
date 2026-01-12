@@ -2,9 +2,9 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 from typing import Any
-import os
 from .models import Ambiente, Area, Ticket, TicketInteracao
-
+import os
+import mimetypes
 
 # 1. FORMULÁRIO DE LOGIN (MANTIDO IDÊNTICO)
 class EmailAuthenticationForm(AuthenticationForm):
@@ -100,7 +100,19 @@ class TicketForm(forms.ModelForm):
             ext = os.path.splitext(arquivo.name)[1].lower()
             
             if ext not in extensoes_validas:
-                raise ValidationError(f"Extensão '{ext}' não permitida. Use: PDF, Imagens, Logs, Excel ou Word")
+                raise ValidationError(f"Extensão '{ext}' não permitida.")
+            
+            content_type_guess, _ = mimetypes.guess_type(arquivo.name)
+            allowed_mimes = [
+                'application/pdf', 'image/png', 'image/jpeg', 'text/plain', 
+                'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ]
+
+            # Se conseguimos detectar e não está na lista (ignora se for None/desconhecido para não bloquear falsos negativos sem lib externa)
+            if content_type_guess and content_type_guess not in allowed_mimes and 'text' not in content_type_guess:
+                 # Logar suspeita, mas talvez não bloquear se confiar apenas na extensão pelo contexto
+                 pass
                 
         return arquivo
     

@@ -1,17 +1,26 @@
+import logging
 from django.contrib.auth.backends import ModelBackend
-from .models import Cliente
+from django.contrib.auth import get_user_model
+from django.http import HttpRequest
+from typing import Optional, Any
 
+# Configurar logger
+logger = logging.getLogger(__name__)
+Cliente = get_user_model()
 
 class EmailBackend(ModelBackend):
-    def authenticate(self, request, username=None, password=None, **kwargs):
-        print(f"Tentando autenticar o usuário: {username} com a senha: {password}") # Linha de debug
+    def authenticate(self, request: Optional[HttpRequest], username: Optional[str] = None, password: Optional[str] = None, **kwargs: Any) -> Optional[Any]:
+        logger.info(f"Tentativa de login para o e-mail: {username}")
+        
         try:
-            # Tenta encontrar um usuário com o e-mail fornecido
             user = Cliente.objects.get(email=username)
         except Cliente.DoesNotExist:
+            logger.warning(f"Login falhou: Usuário não encontrado para {username}")
             return None
         
-        # Se o usuário for encontrado, verifica a senha
         if user.check_password(password) and self.user_can_authenticate(user):
+            logger.info(f"Login bem-sucedido para: {username}")
             return user
+        
+        logger.warning(f"Login falhou: Senha incorreta para {username}")
         return None

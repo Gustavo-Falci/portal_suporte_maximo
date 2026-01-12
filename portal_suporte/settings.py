@@ -183,6 +183,7 @@ MESSAGE_TAGS = {
     messages.ERROR: 'danger', # Transforma 'error' em 'alert-danger' (Vermelho)
 }
 
-# IBM MAXIMO CONFIG (Adicione isso no final do arquivo) 
 MAXIMO_API_URL = os.getenv('MAXIMO_API_URL')
 MAXIMO_API_KEY = os.getenv('MAXIMO_API_KEY')
+
+MAXIMO_VERIFY_SSL = os.getenv('VERIFY', 'True').lower() == 'true'

@@ -29,8 +29,15 @@ class Command(BaseCommand):
         self.stdout.write("--- Iniciando Sincronização (Modo Debug) ---")
 
         try:
-            # Timeout seguro de 60s
-            response = requests.get(API_URL, params=params, headers=headers, verify=False, timeout=60)
+            verify_ssl = getattr(settings, 'MAXIMO_VERIFY_SSL', True)
+            
+            response = requests.get(
+                API_URL, 
+                params=params, 
+                headers=headers, 
+                verify=verify_ssl, # Controlado por settings
+                timeout=30 # Timeout reduzido para não travar workers
+            )
             response.raise_for_status()
             
             data = response.json()
