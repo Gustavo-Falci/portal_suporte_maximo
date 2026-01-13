@@ -1,6 +1,5 @@
 from django.conf import settings
 from .models import Ticket, Cliente
-from typing import Optional
 
 class MaximoEmailService:
     @staticmethod

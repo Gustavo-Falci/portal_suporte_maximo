@@ -1,16 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpRequest, FileResponse, Http404
+from django.http import HttpResponse, HttpRequest, FileResponse
 from django.core.mail import EmailMessage
 from django.conf import settings
 from django.contrib import messages
 from django.urls import reverse
-from .models import Ticket, Ambiente, Area, TicketInteracao, Cliente
+from .models import Ticket, TicketInteracao, Cliente
 from .forms import TicketForm, TicketInteracaoForm
 from django.db.models import Q
 from django.db import transaction
 from .services import MaximoEmailService
-import mimetypes
 import logging
 import os
 
@@ -43,12 +42,12 @@ def meus_tickets(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="/login/")
 def criar_ticket(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
-        # MUDANÇA 1: Passamos user=request.user para o form filtrar Ambientes e Área
+        # 1: Passamos user=request.user para o form filtrar Ambientes e Área
         form = TicketForm(request.POST, request.FILES, user=request.user)
         
         if form.is_valid():
             try:
-                # MUDANÇA 2: Atomicidade. Se o email falhar, o ticket não é salvo no banco.
+                # 2: Atomicidade. Se o email falhar, o ticket não é salvo no banco.
                 with transaction.atomic():
                     ticket = form.save(commit=False)
                     ticket.cliente = request.user
@@ -56,7 +55,7 @@ def criar_ticket(request: HttpRequest) -> HttpResponse:
                     ticket.status_maximo = 'NOVO' 
                     ticket.save()
                     
-                    # MUDANÇA 3: Geração do corpo do e-mail
+                    # 3: Geração do corpo do e-mail
                     corpo_email = MaximoEmailService.gerar_corpo_email(ticket, request.user)
                     
                     # Configuração do E-mail
@@ -87,7 +86,7 @@ def criar_ticket(request: HttpRequest) -> HttpResponse:
         else:
             messages.error(request, "Corrija os erros no formulário abaixo.")
     else:
-        # MUDANÇA 1 (GET): Também passamos o user aqui para renderizar os campos corretos
+        # 1 (GET): Também passamos o user aqui para renderizar os campos corretos
         form = TicketForm(user=request.user)
 
     return render(request, "tickets/criar_ticket.html", {"form": form})
