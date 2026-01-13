@@ -35,7 +35,7 @@
                                 
                                 <option value="" disabled {% if not form.ambiente.value %}selected{% endif %}>Selecione...</option>
                                 
-                                {% for ambiente in ambientes %}
+                                {% for ambiente in form.fields.ambiente.queryset %}
                                     <option value="{{ ambiente.id }}" 
                                         {% if form.ambiente.value|stringformat:"s" == ambiente.id|stringformat:"s" %}selected{% endif %}>
                                         {{ ambiente.nome_ambiente }}
@@ -72,11 +72,11 @@
                     </div>
                 </div>
 
-                {% if mostrar_area %}
+                {% if not form.area.is_hidden %}
                 <div class="form-floating mb-3">
                     <select class="form-select {% if form.area.errors %}is-invalid{% endif %}" id="area" name="area">
                         <option value="" {% if not form.area.value %}selected{% endif %}>Não se aplica / Geral</option>
-                        {% for area in areas %}
+                        {% for area in form.fields.area.queryset %}
                             <option value="{{ area.id }}" {% if form.area.value|stringformat:"s" == area.id|stringformat:"s" %}selected{% endif %}>
                                 {{ area.nome_area }}
                             </option>

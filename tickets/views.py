@@ -8,6 +8,8 @@ from django.urls import reverse
 from .models import Ticket, Ambiente, Area, TicketInteracao, Cliente
 from .forms import TicketForm, TicketInteracaoForm
 from django.db.models import Q
+from django.db import transaction
+from .services import MaximoEmailService
 import mimetypes
 import logging
 import os
@@ -40,126 +42,55 @@ def meus_tickets(request: HttpRequest) -> HttpResponse:
 # CRIAR TICKET
 @login_required(login_url="/login/")
 def criar_ticket(request: HttpRequest) -> HttpResponse:
-    
-    # Type hinting para garantir que estamos lidando com o modelo Cliente customizado
-    cliente: Cliente = request.user
-    # Normaliza a location para evitar erros de case (maiúscula/minúscula)
-    location_str = str(cliente.location).upper() if cliente.location else ""
-    # Verifica se 'PAMPA' ou 'ABL' está contido no location
-    mostrar_area = "PAMPA" in location_str or "ABL" in location_str
-
     if request.method == "POST":
+        # MUDANÇA 1: Passamos user=request.user para o form filtrar Ambientes e Área
         form = TicketForm(request.POST, request.FILES, user=request.user)
         
         if form.is_valid():
             try:
-                # 1. SALVAR NO BANCO DE DADOS (PostgreSQL)
-                # commit=False cria o objeto na memória mas não salva ainda
-                ticket = form.save(commit=False)
-                ticket.cliente = request.user # Atribui o dono do ticket
-                ticket.save() # Agora sim, salva e gera o ID (ticket.id)
-
-                logger.info(f"Ticket #{ticket.id} salvo no banco por {request.user.email}")
-
-                # 2. PREPARAR DADOS PARA O MAXIMO (Usando o objeto ticket salvo)
-                descricao_problema = ticket.descricao
-                sumario = ticket.sumario
-                prioridade = ticket.prioridade # Pegando do banco
-                
-                # Tratamento seguro de campos opcionais (Ambiente e Area são ForeignKeys)
-                asset_num = ticket.ambiente.numero_ativo if ticket.ambiente else ""
-                area_selecionada = ticket.area.nome_area if ticket.area else ""
-                
-                # Dados do Usuário
-                location = getattr(request.user, 'location', '')
-                person_id = getattr(request.user, 'person_id', '')
-
-                # 3. MONTAGEM DO CORPO DO E-MAIL (REGRAS DE NEGÓCIO)
-                corpo_email = f"""
-Descrição do problema: {descricao_problema}<br><br>
-#MAXIMO_EMAIL_BEGIN<br>
-SR#DESCRIPTION={sumario}<br>
-;<br>
-SR#ASSETNUM={asset_num}<br>
-;<br>
-SR#REPORTEDPRIORITY={prioridade}<br>
-;<br>"""
-
-                if area_selecionada:
-                    corpo_email += f"""SR#ITC_AREA={area_selecionada}<br>
-;<br>"""
-
-                corpo_email += f"""SR#LOCATION={location}<br>
-;<br>"""
-
-                if person_id:
-                    corpo_email += f"""SR#AFFECTEDPERSONID={person_id}<br>
-;<br>"""
-
-                # Tags fixas do Maximo
-                corpo_email += """SR#SITEID=ITCBR<br>
-;<br>
-LSNRACTION=CREATE<br>
-;<br>
-LSNRAPPLIESTO=SR<br>
-;<br>
-SR#CLASS=SR<br>
-;<br>
-SR#TICKETID=&AUTOKEY&<br>
-;<br>
-#MAXIMO_EMAIL_END<br><br>"""
-
-                # 4. ENVIO DO E-MAIL
-                email = EmailMessage(
-                    subject=f"Novo Ticket - {sumario}", 
-                    body=corpo_email,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[settings.EMAIL_DESTINATION],
-                    reply_to=[request.user.email],
-                )
-                
-                # Anexa o arquivo se existir (usando o campo do Model)
-                if ticket.arquivo:
-                    # 1. Pega o nome do arquivo
-                    nome_arquivo = ticket.arquivo.name
+                # MUDANÇA 2: Atomicidade. Se o email falhar, o ticket não é salvo no banco.
+                with transaction.atomic():
+                    ticket = form.save(commit=False)
+                    ticket.cliente = request.user
+                    # Define status inicial (certifique-se que seu model tem esse campo ou ajuste)
+                    ticket.status_maximo = 'NOVO' 
+                    ticket.save()
                     
-                    # 2. Lê o conteúdo binário
-                    conteudo_arquivo = ticket.arquivo.read()
+                    # MUDANÇA 3: Geração do corpo do e-mail
+                    corpo_email = MaximoEmailService.gerar_corpo_email(ticket, request.user)
                     
-                    # 3. Descobre o MIME Type pela extensão (Ex: .pdf -> application/pdf)
-                    mime_type, _ = mimetypes.guess_type(nome_arquivo)
+                    # Configuração do E-mail
+                    email = EmailMessage(
+                        subject=f"Novo Ticket - {ticket.sumario}", 
+                        body=corpo_email,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        to=[settings.EMAIL_DESTINATION],
+                        reply_to=[request.user.email],
+                    )
+                    email.content_subtype = "html" # Importante para as quebras de linha <br>
                     
-                    # Fallback de segurança: Se não conseguir identificar, usa um tipo genérico binário
-                    if mime_type is None:
-                        mime_type = 'application/octet-stream'
-
-                    # 4. Anexa com segurança
-                    email.attach(nome_arquivo, conteudo_arquivo, mime_type)
-                
-                email.content_subtype = "html" # Importante para as tags <br> funcionarem
-                email.send()
-
-                logger.info(f"Ticket #{ticket.id} enviado por e-mail.")
-                return redirect("ticket_sucesso")
+                    # Anexar arquivo se houver
+                    if ticket.anexo:
+                        # O método read() lê o binário do arquivo em memória
+                        email.attach(ticket.anexo.name, ticket.anexo.read(), ticket.anexo.file.content_type)
+                    
+                    # Enviar
+                    email.send(fail_silently=False)
+                    
+                    logger.info(f"Ticket #{ticket.id} enviado com sucesso por {request.user.email}")
+                    return redirect("ticket_sucesso")
 
             except Exception as e:
-                logger.error(f"Erro no processo de ticket: {str(e)}")
-                messages.error(request, "Ocorreu um erro ao processar sua solicitação. Tente novamente.")
-                # Opcional: Se o e-mail falhar, você pode querer deletar o ticket do banco ou marcá-lo como 'erro_envio'
+                logger.error(f"Erro ao criar ticket: {e}", exc_info=True)
+                messages.error(request, "Erro de comunicação com o sistema de chamados. Por favor, tente novamente.")
+                # Graças ao transaction.atomic, nada foi salvo no banco, mantendo a integridade.
         else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{error}")
+            messages.error(request, "Corrija os erros no formulário abaixo.")
     else:
+        # MUDANÇA 1 (GET): Também passamos o user aqui para renderizar os campos corretos
         form = TicketForm(user=request.user)
 
-    context = {
-        "form": form,
-        "ambientes": Ambiente.objects.filter(cliente=request.user), 
-        "areas": Area.objects.filter(cliente=request.user),
-        "mostrar_area": mostrar_area
-    }
-    return render(request, "tickets/criar_ticket.html", context)
+    return render(request, "tickets/criar_ticket.html", {"form": form})
 
 # DETALHE DO TICKET
 @login_required(login_url="/login/")

@@ -3,6 +3,7 @@ import logging
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from tickets.models import Ticket
+from requests.adapters import HTTPAdapter, Retry
 
 # Configuração de Log
 logger = logging.getLogger(__name__)
@@ -11,6 +12,17 @@ class Command(BaseCommand):
     help = 'Sincroniza status, ID e descrição dos tickets com o IBM Maximo'
 
     def handle(self, *args, **options):
+
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1, # Espera 1s, 2s, 4s...
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        http = requests.Session()
+        http.mount("https://", adapter)
+        http.mount("http://", adapter)
+
         API_URL = getattr(settings, 'MAXIMO_API_URL', None)
         API_KEY = getattr(settings, 'MAXIMO_API_KEY', None)
         
@@ -31,7 +43,7 @@ class Command(BaseCommand):
         try:
             verify_ssl = getattr(settings, 'MAXIMO_VERIFY_SSL', True)
             
-            response = requests.get(
+            response = http.get(
                 API_URL, 
                 params=params, 
                 headers=headers, 

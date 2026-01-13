@@ -118,6 +118,13 @@ class Ticket(models.Model):
         verbose_name="Prioridade",
         blank=False
     )
+
+    anexo = models.FileField(
+        upload_to='ticket_anexos/', 
+        null=True, 
+        blank=True, 
+        verbose_name="Anexo"
+    )
     
     # Auditoria (Datas automáticas)
     data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Aberto em")

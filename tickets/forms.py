@@ -1,12 +1,14 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
-from typing import Any
+from typing import Any, Optional
 from .models import Ambiente, Area, Ticket, TicketInteracao
 import os
 import mimetypes
 
-# 1. FORMULÁRIO DE LOGIN (MANTIDO IDÊNTICO)
+ 
+# 1. FORMULÁRIO DE LOGIN
+
 class EmailAuthenticationForm(AuthenticationForm):
     """
     Formulário de autenticação customizado para usar E-mail como login.
@@ -33,36 +35,33 @@ class EmailAuthenticationForm(AuthenticationForm):
         'inactive': "Esta conta está inativa. Entre em contato com o suporte.",
     }
 
-    def __init__(self, request: Any = None, *args: Any, **kwargs: Any) -> None:
-        super().__init__(request, *args, **kwargs)
+ 
+# 2. FORMULÁRIO DE ABERTURA DE TICKET
 
-
-# 2. FORMULÁRIO DE TICKET
 class TicketForm(forms.ModelForm):
     """
-    ModelForm para Ticket.
-    Inclui validação de anexo e filtro de ambientes por usuário.
+    Formulário principal de abertura de chamados.
+    - Filtra Ambientes pelo Cliente logado.
+    - Exibe/Oculta Área baseado no Location do Cliente (Regra PAMPA/ABL).
     """
     class Meta:
         model = Ticket
-        # Agora incluímos 'prioridade' na lista de campos
-        fields = ['sumario', 'descricao', 'ambiente', 'prioridade', 'area', 'arquivo']
+        fields = ['sumario', 'descricao', 'ambiente', 'prioridade', 'area', 'anexo']
         
-        # Estilização com Bootstrap 5
         widgets = {
             'sumario': forms.TextInput(attrs={
                 'class': 'form-control', 
-                'placeholder': 'Resumo curto'
+                'placeholder': 'Resumo curto do problema'
             }),
             'descricao': forms.Textarea(attrs={
                 'class': 'form-control', 
-                'style': 'height: 150px', 
-                'placeholder': 'Descreva detalhadamente o problema'
+                'rows': 5, 
+                'placeholder': 'Descreva detalhadamente o que aconteceu...'
             }),
             'ambiente': forms.Select(attrs={'class': 'form-select'}),
-            'prioridade': forms.Select(attrs={'class': 'form-select'}), 
+            'prioridade': forms.Select(attrs={'class': 'form-select'}),
             'area': forms.Select(attrs={'class': 'form-select'}),
-            'arquivo': forms.FileInput(attrs={'class': 'form-control'}),
+            'anexo': forms.FileInput(attrs={'class': 'form-control'})
         }
 
     def __init__(self, *args, **kwargs):
@@ -84,24 +83,22 @@ class TicketForm(forms.ModelForm):
                 self.fields['area'].queryset = Area.objects.none()
                 self.fields['area'].required = False
                 self.fields['area'].widget = forms.HiddenInput()
-        
-    def clean_arquivo(self):
-        """
-        Validação do arquivo (tamanho e extensão).
-        """
-        arquivo = self.cleaned_data.get('arquivo')
+
+    def clean_anexo(self):
+        """Validação de segurança de arquivos (Tamanho e Extensão)"""
+        arquivo = self.cleaned_data.get('anexo')
         if arquivo:
-            # 1. Limite de Tamanho: 15MB
-            if arquivo.size > 15 * 1024 * 1024:
-                raise ValidationError("O arquivo é muito grande. O limite máximo é 15MB.")
+            # 1. Validar tamanho (Limite: 5MB)
+            if arquivo.size > 5 * 1024 * 1024:
+                raise ValidationError("O arquivo é muito grande (Máx 5MB).")
             
-            # 2. Extensões Permitidas
-            extensoes_validas = ['.pdf', '.png', '.jpg', '.jpeg', '.txt', '.log', '.csv', '.xlsx', '.docx', '.doc']
+            # 2. Validar extensão
             ext = os.path.splitext(arquivo.name)[1].lower()
-            
+            extensoes_validas = ['.pdf', '.png', '.jpg', '.jpeg', '.txt', '.xlsx', '.xls', '.docx', '.doc']
             if ext not in extensoes_validas:
                 raise ValidationError(f"Extensão '{ext}' não permitida.")
             
+            # 3. Validação básica de MIME type (Opcional, mas recomendada)
             content_type_guess, _ = mimetypes.guess_type(arquivo.name)
             allowed_mimes = [
                 'application/pdf', 'image/png', 'image/jpeg', 'text/plain', 
@@ -109,13 +106,16 @@ class TicketForm(forms.ModelForm):
                 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
             ]
 
-            # Se conseguimos detectar e não está na lista (ignora se for None/desconhecido para não bloquear falsos negativos sem lib externa)
+            # Aceita se for texto puro ou um dos tipos permitidos. 
+            # Se o tipo for desconhecido (None), deixamos passar confiando na extensão para não bloquear falsos negativos.
             if content_type_guess and content_type_guess not in allowed_mimes and 'text' not in content_type_guess:
-                 # Logar suspeita, mas talvez não bloquear se confiar apenas na extensão pelo contexto
-                 pass
+                 pass 
                 
         return arquivo
-    
+
+
+# 3. FORMULÁRIO DE INTERAÇÃO (RESPOSTAS)
+ 
 class TicketInteracaoForm(forms.ModelForm):
     """
     Formulário para adicionar comentários/respostas ao ticket.
@@ -129,5 +129,5 @@ class TicketInteracaoForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Digite sua resposta ou atualização aqui...'
             }),
-            'anexo': forms.FileInput(attrs={'class': 'form-control'}),
+            'anexo': forms.FileInput(attrs={'class': 'form-control'})
         }

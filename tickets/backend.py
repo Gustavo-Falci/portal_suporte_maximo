@@ -17,6 +17,9 @@ class EmailBackend(ModelBackend):
         except Cliente.DoesNotExist:
             logger.warning(f"Login falhou: Usuário não encontrado para {username}")
             return None
+        except Cliente.MultipleObjectsReturned:
+            logger.critical(f"Múltiplos usuários com email {username}. ERRO AO LOGAR")
+            return None
         
         if user.check_password(password) and self.user_can_authenticate(user):
             logger.info(f"Login bem-sucedido para: {username}")
