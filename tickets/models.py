@@ -3,8 +3,6 @@ from django.db import models
 from django.conf import settings
 import os
 
-# --- MODELOS DE USUÁRIO E ESTRUTURA (JÁ EXISTENTES) ---
-
 class Cliente(AbstractUser):
     location = models.CharField(max_length=200, blank=True, null=True)
     person_id = models.CharField(max_length=150, blank=True, null=True)
