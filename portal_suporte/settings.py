@@ -67,6 +67,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "tickets.context_processors.notificacoes_usuario",
             ],
         },
     },
@@ -153,8 +154,8 @@ EMAIL_USE_SSL = True
 # Pega do .env
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')   
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-EMAIL_DESTINATION = os.getenv('SUPORTE_DESTINATION_EMAIL')
-SUPPORT_EMAIL_ADDRESS = os.getenv('SUPORTE_DESTINATION_EMAIL')
+EMAIL_DESTINATION = ('suportebr@itconsol.com')
+SUPPORT_EMAIL_ADDRESS = ('suportebr@itconsol.com')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 

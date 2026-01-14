@@ -65,7 +65,7 @@ class Ticket(models.Model):
         ('APPLM', 'Aprovado pelo Gerente de Linha'),
         ('RESOLVED', 'Resolvido'),
         ('CLOSED', 'Fechado'),
-        ('CANCELLED', 'Cancelada'),
+        ('CANCELLED', 'Cancelado'),
         ('REJECTED', 'Rejeitado'),
         ('DRAFT', 'Rascunho'),
         ('HISTEDIT', 'Editado no Histórico'),
@@ -210,3 +210,28 @@ class TicketInteracao(models.Model):
         if self.anexo:
             return os.path.basename(self.anexo.name) if self.anexo else ''
         return None
+    
+class Notificacao(models.Model):
+    # Opções de tipo para ícones no frontend
+    TIPO_CHOICES = (
+        ('mensagem', 'Nova Mensagem'),
+        ('status', 'Mudança de Status'),
+        ('sistema', 'Aviso do Sistema'),
+    )
+
+    destinatario = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='notificacoes')
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, null=True, blank=True)
+    
+    titulo = models.CharField(max_length=50, default="Nova Notificação") # Ex: "Nova Resposta"
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='sistema')
+    
+    mensagem = models.CharField(max_length=255)
+    lida = models.BooleanField(default=False)
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    link = models.CharField(max_length=200, blank=True, null=True)
+
+    class Meta:
+        ordering = ['-data_criacao']
+
+    def __str__(self):
+        return f"{self.titulo} - {self.destinatario}"

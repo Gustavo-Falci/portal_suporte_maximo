@@ -1,8 +1,9 @@
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.core.mail import EmailMessage
 from django.conf import settings
-from .models import Ticket
+from .models import Ticket, TicketInteracao, Notificacao, Cliente
+from django.urls import reverse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -68,3 +69,69 @@ def _enviar_email_status(ticket: Ticket, status_anterior_display: str) -> None:
     )
     email.content_subtype = "html"
     email.send()
+
+@receiver(post_save, sender=TicketInteracao)
+def criar_notificacao_interacao(sender, instance, created, **kwargs):
+    """
+    Gera notificação interna quando há nova interação.
+    """
+    if created:
+        ticket = instance.ticket
+        autor = instance.autor
+
+        # Define o título e tipo baseados na ação
+        titulo_notif = "Nova Resposta"
+        tipo_notif = "mensagem"
+        
+        # Se quem escreveu foi o SUPORTE (ou Admin) -> Notificar o CLIENTE
+        if autor.is_support_team:
+            Notificacao.objects.create(
+                destinatario=ticket.cliente,
+                ticket=ticket,
+                titulo=titulo_notif, # Título Curto
+                tipo=tipo_notif,
+                mensagem=f"{autor.first_name or 'Suporte'}: {instance.mensagem[:60]}...", # Preview da mensagem
+                link=reverse('detalhe_ticket', kwargs={'pk': ticket.pk})
+            )
+        
+        # Se quem escreveu foi o CLIENTE -> Notificar o time de SUPORTE
+        else:
+            # Aqui notificamos todos os admins/consultores. 
+            # Em sistemas grandes, seria melhor notificar apenas quem está atendendo.
+            staff_users = Cliente.objects.filter(is_staff=True) | Cliente.objects.filter(groups__name='Consultores')
+            
+            notificacoes = []
+            for staff in staff_users.distinct():
+                notificacoes.append(Notificacao(
+                    destinatario=staff,
+                    ticket=ticket,
+                    titulo="Cliente Respondeu", # Título Claro
+                    tipo="mensagem",
+                    mensagem=f"{autor.username}: {instance.mensagem[:60]}...",
+                    link=reverse('detalhe_ticket', kwargs={'pk': ticket.pk}) + "?origin=fila"
+                ))
+            
+            # Bulk create para performance
+            Notificacao.objects.bulk_create(notificacoes)
+
+@receiver(pre_save, sender=Ticket)
+def criar_notificacao_status(sender, instance, **kwargs):
+    """
+    Gera notificação interna quando muda o status (Complementa o e-mail).
+    """
+    if not instance.pk:
+        return
+
+    try:
+        old_instance = Ticket.objects.get(pk=instance.pk)
+        if old_instance.status_maximo != instance.status_maximo:
+            Notificacao.objects.create(
+                destinatario=instance.cliente,
+                ticket=instance,
+                titulo="Status Atualizado", # Título Claro
+                tipo="status",
+                mensagem=f"O chamado agora está: {instance.get_status_maximo_display()}",
+                link=reverse('detalhe_ticket', kwargs={'pk': instance.pk})
+            )
+    except Ticket.DoesNotExist:
+        pass

@@ -5,7 +5,7 @@ from django.core.mail import EmailMessage
 from django.conf import settings
 from django.contrib import messages
 from django.urls import reverse
-from .models import Ticket, TicketInteracao, Cliente
+from .models import Ticket, TicketInteracao, Cliente, Notificacao
 from .forms import TicketForm, TicketInteracaoForm
 from django.db.models import Q
 from django.db import transaction
@@ -42,51 +42,67 @@ def meus_tickets(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="/login/")
 def criar_ticket(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
-        # 1: Passamos user=request.user para o form filtrar Ambientes e Área
         form = TicketForm(request.POST, request.FILES, user=request.user)
         
         if form.is_valid():
             try:
-                # 2: Atomicidade. Se o email falhar, o ticket não é salvo no banco.
+                # Transação atômica: só salva o ticket se não houver erro de código abaixo
                 with transaction.atomic():
                     ticket = form.save(commit=False)
                     ticket.cliente = request.user
-                    # Define status inicial (certifique-se que seu model tem esse campo ou ajuste)
                     ticket.status_maximo = 'NOVO' 
                     ticket.save()
                     
-                    # 3: Geração do corpo do e-mail
+                    
+                    destinatario = settings.EMAIL_DESTINATION
+                    remetente = settings.DEFAULT_FROM_EMAIL
+
+                    # Log para debug (aparecerá no terminal do servidor)
+                    logger.info(f"--- TENTANDO ENVIAR TICKET #{ticket.id} ---")
+                    logger.info(f"DE: {remetente}")
+                    logger.info(f"PARA: {destinatario}")
+                    
+                    if not destinatario:
+                        logger.critical("ERRO: A variável SUPORTE_DESTINATION_EMAIL não está definida no .env ou settings.")
+                        raise ValueError("E-mail de destino não configurado.")
+
+                    # 1. Gera o corpo (O Service já gera com <br>)
                     corpo_email = MaximoEmailService.gerar_corpo_email(ticket, request.user)
                     
-                    # Configuração do E-mail
+                    # 2. Configuração do E-mail (HTML Puro para manter os <br>)
                     email = EmailMessage(
                         subject=f"Novo Ticket - {ticket.sumario}", 
                         body=corpo_email,
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        to=[settings.EMAIL_DESTINATION],
+                        from_email=remetente,
+                        to=[destinatario],
                         reply_to=[request.user.email],
                     )
-                    email.content_subtype = "html" # Importante para as quebras de linha <br>
                     
-                    # Anexar arquivo se houver
+                    # AQUI ESTÁ O SEGREDO: Forçamos o tipo para HTML
+                    # O Maximo receberá as tags <br> literais para processar.
+                    email.content_subtype = "html" 
+                    
+                    # 3. Anexo
                     if ticket.anexo:
-                        # O método read() lê o binário do arquivo em memória
                         email.attach(ticket.anexo.name, ticket.anexo.read(), ticket.anexo.file.content_type)
                     
-                    # Enviar
-                    email.send(fail_silently=False)
+                    # 4. Envio com Log
+                    enviado = email.send(fail_silently=False)
                     
-                    logger.info(f"Ticket #{ticket.id} enviado com sucesso por {request.user.email}")
+                    if enviado:
+                        logger.info(f"SUCESSO: Ticket #{ticket.id} enviado para {destinatario} via SMTP.")
+                    else:
+                        logger.warning(f"ALERTA: O servidor SMTP aceitou a conexão mas retornou 0 envios para o Ticket #{ticket.id}.")
+
                     return redirect("ticket_sucesso")
 
             except Exception as e:
-                logger.error(f"Erro ao criar ticket: {e}", exc_info=True)
-                messages.error(request, "Erro de comunicação com o sistema de chamados. Por favor, tente novamente.")
-                # Graças ao transaction.atomic, nada foi salvo no banco, mantendo a integridade.
+                # Log completo do erro para você ver no terminal
+                logger.error(f"FALHA NO ENVIO DO TICKET: {e}", exc_info=True)
+                messages.error(request, "Erro ao comunicar com o servidor de e-mail. O ticket não foi criado.")
         else:
             messages.error(request, "Corrija os erros no formulário abaixo.")
     else:
-        # 1 (GET): Também passamos o user aqui para renderizar os campos corretos
         form = TicketForm(user=request.user)
 
     return render(request, "tickets/criar_ticket.html", {"form": form})
@@ -332,3 +348,15 @@ def _enviar_notificacao_chat(ticket: Ticket, interacao: TicketInteracao, autor) 
         )
         email.content_subtype = "html" # Permite usar HTML no corpo
         email.send()
+
+@login_required
+def marcar_notificacao_lida(request, notificacao_id):
+    notificacao = get_object_or_404(Notificacao, pk=notificacao_id, destinatario=request.user)
+    
+    notificacao.lida = True
+    notificacao.save()
+    
+    # Redireciona para o link da notificação (ex: detalhe do ticket)
+    if notificacao.link:
+        return redirect(notificacao.link)
+    return redirect('pagina_inicial')
