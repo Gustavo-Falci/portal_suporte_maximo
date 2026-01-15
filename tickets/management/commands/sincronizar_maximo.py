@@ -66,7 +66,6 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"Erro Crítico: {e}"))
 
     def processar_tickets(self, items: list) -> None:
-        # Contadores separados para melhor clareza no log
         total_vinculados = 0
         total_status_alterados = 0
         
@@ -77,7 +76,7 @@ class Command(BaseCommand):
 
         # 2. Indexação e Listas
         tickets_por_id = {}
-        tickets_sem_id = []
+        tickets_sem_id = [] # Lista mutável de tickets aguardando ID
 
         # Separa quem tem ID de quem não tem
         for t in tickets_locais:
@@ -86,7 +85,7 @@ class Command(BaseCommand):
             else:
                 tickets_sem_id.append(t)
 
-        # Debug: Listar tickets que estão esperando vínculo (sem ID)
+        # Debug: Listar tickets que estão esperando vínculo
         if tickets_sem_id:
             self.stdout.write("--- Tickets Locais aguardando vínculo (Sem ID) ---")
             for t in tickets_sem_id:
@@ -98,61 +97,58 @@ class Command(BaseCommand):
             mx_status = item.get('status', '')
             mx_desc_raw = item.get('description', '')
             
-            # Normalização (minúsculo e sem espaços nas pontas)
             mx_desc_clean = mx_desc_raw.strip().lower()
 
             if not mx_id:
                 continue
 
-            ticket_encontrado = None
-            novo_vinculo = False # Flag para saber se houve vínculo nesta iteração
+            # Lista para processar atualizações nesta iteração do Maximo
+            tickets_para_processar = []
 
             # --- ESTRATÉGIA 1: ID do Maximo (Já vinculado) ---
             if mx_id in tickets_por_id:
-                ticket_encontrado = tickets_por_id[mx_id]
+                # Se já tem ID, adiciona à lista de processamento
+                tickets_para_processar.append(tickets_por_id[mx_id])
             
-            # --- ESTRATÉGIA 2: Busca por Texto (Para novos vínculos) ---
+            # --- ESTRATÉGIA 2: Busca por Texto (Múltiplos Vínculos) ---
             else:
+                # Encontrar TODOS os tickets compatíveis, não apenas o primeiro
+                matches_encontrados = []
+                
                 for t_local in tickets_sem_id:
                     local_sumario_clean = t_local.sumario.strip().lower()
                     
-                    # LOGICA DE MATCH:
-                    # 1. Verifica se são IGUAIS
-                    # 2. OU se o texto local está CONTIDO no Maximo (Match Parcial)
                     match_exato = (local_sumario_clean == mx_desc_clean)
                     match_parcial = (len(local_sumario_clean) > 5 and local_sumario_clean in mx_desc_clean)
 
                     if match_exato or match_parcial:
-                        ticket_encontrado = t_local
+                        matches_encontrados.append(t_local)
                         
-                        # Debug do Match
                         tipo_match = "EXATO" if match_exato else "PARCIAL"
-                        self.stdout.write(self.style.SUCCESS(f"MATCH {tipo_match} ENCONTRADO!"))
-                        self.stdout.write(f"   Maximo: '{mx_desc_clean}'")
-                        self.stdout.write(f"   Local:  '{local_sumario_clean}'")
-                        
-                        # Realiza o vínculo
-                        self._vincular_id(ticket_encontrado, mx_id)
-                        novo_vinculo = True
-                        total_vinculados += 1
-                        
-                        # Remove da lista para não duplicar
-                        tickets_sem_id.remove(t_local)
-                        break
+                        self.stdout.write(self.style.SUCCESS(f"MATCH {tipo_match} ENCONTRADO para SR {mx_id}!"))
+                        self.stdout.write(f"   Ticket Local #{t_local.id} ('{local_sumario_clean}')")
 
-            # --- PROCESSAMENTO DE ATUALIZAÇÃO ---
-            if ticket_encontrado:
-                # Se acabamos de vincular, o ID já está salvo, mas verificamos o status
-                # Se não era novo vínculo, verificamos ID e status
-                if self._atualizar_ticket(ticket_encontrado, mx_status, mx_id):
+                # Processa os vínculos encontrados
+                for t_match in matches_encontrados:
+                    self._vincular_id(t_match, mx_id)
+                    total_vinculados += 1
+                    
+                    # Adiciona à lista de processamento de status
+                    tickets_para_processar.append(t_match)
+                    
+                    # Remove da lista principal para não processar novamente em outro loop
+                    # (Importante: removemos da lista original 'tickets_sem_id')
+                    if t_match in tickets_sem_id:
+                        tickets_sem_id.remove(t_match)
+
+            # --- PROCESSAMENTO DE ATUALIZAÇÃO (Para todos os tickets vinculados a este SR) ---
+            for ticket in tickets_para_processar:
+                # Verifica se houve alteração de status ou confirmação do ID
+                if self._atualizar_ticket(ticket, mx_status, mx_id):
                     total_status_alterados += 1
-                    msg_acao = "VINCULADO E ATUALIZADO" if novo_vinculo else "ATUALIZADO"
-                    self.stdout.write(f"Ticket #{ticket_encontrado.id} [{msg_acao}] -> Status: {mx_status} (SR {mx_id})")
-                elif novo_vinculo:
-                    # Se só vinculou mas o status era o mesmo, avisamos também
-                    self.stdout.write(f"Ticket #{ticket_encontrado.id} [VINCULADO] -> ID Maximo: {mx_id}")
+                    self.stdout.write(f"Ticket #{ticket.id} [ATUALIZADO] -> Status: {mx_status} (SR {mx_id})")
 
-        # Resumo Final Detalhado
+        # Resumo Final
         msg_final = f"Sincronização concluída. Novos Vínculos: {total_vinculados} | Status Alterados: {total_status_alterados}"
         
         if total_vinculados > 0 or total_status_alterados > 0:

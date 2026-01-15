@@ -84,7 +84,11 @@ def criar_ticket(request: HttpRequest) -> HttpResponse:
                     
                     # 3. Anexo
                     if ticket.anexo:
-                        email.attach(ticket.anexo.name, ticket.anexo.read(), ticket.anexo.file.content_type)
+                        # O anexo precisa ser lido e anexado com nome e mimetype
+                        try:
+                            email.attach(ticket.anexo.name, ticket.anexo.read(), ticket.anexo.file.content_type)
+                        except Exception as e:
+                            logger.error(f"Erro ao anexar arquivo no email do Maximo: {e}")
                     
                     # 4. Envio com Log
                     enviado = email.send(fail_silently=False)
