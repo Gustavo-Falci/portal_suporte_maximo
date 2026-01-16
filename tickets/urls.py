@@ -1,5 +1,7 @@
 from django.urls import path
 from django.contrib.auth.views import LoginView, LogoutView
+from django.conf import settings
+from django.conf.urls.static import static
 from . import views, forms
 
 urlpatterns = [
@@ -18,3 +20,6 @@ urlpatterns = [
     path("interacao/anexo/<int:interacao_id>/", views.download_anexo_interacao, name="download_anexo"),
     path('notificacao/ler/<int:notificacao_id>/', views.marcar_notificacao_lida, name='marcar_notificacao_lida'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

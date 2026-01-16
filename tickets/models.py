@@ -96,7 +96,6 @@ class Ticket(models.Model):
     # Dados do Chamado
     sumario = models.CharField(max_length=100, verbose_name="Resumo do Problema")
     descricao = models.TextField(verbose_name="Descrição Detalhada")
-    arquivo = models.FileField(upload_to='anexos_tickets/', null=True, blank=True)
     
     # Integração Maximo
     maximo_id = models.CharField(max_length=50, null=True, blank=True, verbose_name="ID do Chamado (SR)")

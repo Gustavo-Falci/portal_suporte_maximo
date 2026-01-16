@@ -9,30 +9,17 @@
 {% block content %}
 
 <style>
-    /* --- CONFIGURAÇÃO DA IMAGEM DE FUNDO --- */
+    /* CONFIGURAÇÃO DA IMAGEM DE FUNDO */
     .hero-background {
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw; /* Garante 100% da largura da janela (Viewport Width) */
-        
-        /* Ajuste a altura aqui. 
-           Se a imagem estiver cortando muito embaixo, aumente esse valor. */
         height: 100vh; 
 
         background-image: url('{% static "tickets/img/fundo_login.jpg" %}');
-        
-        /* --- A SOLUÇÃO MÁGICA --- */
-        
-        /* 'cover': Faz a imagem crescer até preencher TODO o espaço.
-           Isso elimina as barras laterais brancas. */
         background-size: 100% 100%; 
-        
-        /* 'top center': Isso diz ao navegador: 
-           "Preencha tudo, mas se tiver que cortar algo, corte as laterais ou o fundo.
-            NUNCA corte o topo (cabeçalho) e tente manter o centro focado." */
         background-position: top center; 
-        
         background-repeat: no-repeat;
         z-index: -1;
         
@@ -46,7 +33,7 @@
         }
     }
 
-    /* Camada Escura para melhorar leitura (Opcional) */
+    /* Camada Escura para melhorar leitura */
     .hero-background::before {
         content: "";
         position: absolute;

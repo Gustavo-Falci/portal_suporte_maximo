@@ -8,7 +8,6 @@ from django.urls import reverse
 from .models import Ticket, TicketInteracao, Cliente, Notificacao
 from .forms import TicketForm, TicketInteracaoForm
 from django.db.models import Q
-from django.db import transaction
 from .services import MaximoEmailService
 import logging
 import os
@@ -41,71 +40,66 @@ def meus_tickets(request: HttpRequest) -> HttpResponse:
 # CRIAR TICKET
 @login_required(login_url="/login/")
 def criar_ticket(request: HttpRequest) -> HttpResponse:
-    if request.method == "POST":
+    if request.method == 'POST':
+        
         form = TicketForm(request.POST, request.FILES, user=request.user)
         
         if form.is_valid():
+            ticket = form.save(commit=False)
+            ticket.cliente = request.user
+
             try:
-                # Transação atômica: só salva o ticket se não houver erro de código abaixo
-                with transaction.atomic():
-                    ticket = form.save(commit=False)
-                    ticket.cliente = request.user
-                    ticket.status_maximo = 'NOVO' 
-                    ticket.save()
-                    
-                    
-                    destinatario = settings.EMAIL_DESTINATION
-                    remetente = settings.DEFAULT_FROM_EMAIL
 
-                    # Log para debug (aparecerá no terminal do servidor)
-                    logger.info(f"--- TENTANDO ENVIAR TICKET #{ticket.id} ---")
-                    logger.info(f"DE: {remetente}")
-                    logger.info(f"PARA: {destinatario}")
-                    
-                    if not destinatario:
-                        logger.critical("ERRO: A variável SUPORTE_DESTINATION_EMAIL não está definida no .env ou settings.")
-                        raise ValueError("E-mail de destino não configurado.")
+                anexo_upload = request.FILES.get("arquivo")
 
-                    # 1. Gera o corpo (O Service já gera com <br>)
-                    corpo_email = MaximoEmailService.gerar_corpo_email(ticket, request.user)
-                    
-                    # 2. Configuração do E-mail (HTML Puro para manter os <br>)
-                    email = EmailMessage(
-                        subject=f"Novo Ticket - {ticket.sumario}", 
-                        body=corpo_email,
-                        from_email=remetente,
-                        to=[destinatario],
-                        reply_to=[request.user.email],
-                    )
-                    
-                    # AQUI ESTÁ O SEGREDO: Forçamos o tipo para HTML
-                    # O Maximo receberá as tags <br> literais para processar.
-                    email.content_subtype = "html" 
-                    
-                    # 3. Anexo
-                    if ticket.anexo:
-                        # O anexo precisa ser lido e anexado com nome e mimetype
-                        try:
-                            email.attach(ticket.anexo.name, ticket.anexo.read(), ticket.anexo.file.content_type)
-                        except Exception as e:
-                            logger.error(f"Erro ao anexar arquivo no email do Maximo: {e}")
-                    
-                    # 4. Envio com Log
-                    enviado = email.send(fail_silently=False)
-                    
-                    if enviado:
-                        logger.info(f"SUCESSO: Ticket #{ticket.id} enviado para {destinatario} via SMTP.")
-                    else:
-                        logger.warning(f"ALERTA: O servidor SMTP aceitou a conexão mas retornou 0 envios para o Ticket #{ticket.id}.")
+                if anexo_upload:
+                    # Atribuímos manualmente ao campo certo do modelo ('anexo')
+                    ticket.anexo = anexo_upload
+                
+                ticket.save()
+                
+                destinatario = settings.EMAIL_DESTINATION
+                remetente = settings.DEFAULT_FROM_EMAIL
 
-                    return redirect("ticket_sucesso")
+                corpo_email = MaximoEmailService.gerar_corpo_email(ticket, request.user)
+                
+                email = EmailMessage(
+                    subject=f"Novo Ticket - {ticket.sumario}", 
+                    body=corpo_email,
+                    from_email=remetente,
+                    to=[destinatario],
+                    reply_to=[request.user.email],
+                )
 
+                email.content_subtype = "html"
+
+                if anexo_upload:
+                    try:
+                        anexo_upload.seek(0)
+                        
+                        # 3. Pega os dados do próprio objeto de upload
+                        nome_arquivo = anexo_upload.name
+                        conteudo = anexo_upload.read()
+                        
+                        # O navegador já manda o tipo (ex: application/pdf), é mais seguro usar ele
+                        content_type = anexo_upload.content_type 
+                        if not content_type:
+                            content_type = 'application/octet-stream'
+
+                        # 4. Anexa ao e-mail
+                        email.attach(nome_arquivo, conteudo, content_type)
+                        
+                    except Exception as e:
+                        logger.error(f"Erro ao anexar arquivo da memória: {e}")
+
+                # Envia
+                email.send()
+                
             except Exception as e:
-                # Log completo do erro para você ver no terminal
-                logger.error(f"FALHA NO ENVIO DO TICKET: {e}", exc_info=True)
-                messages.error(request, "Erro ao comunicar com o servidor de e-mail. O ticket não foi criado.")
-        else:
-            messages.error(request, "Corrija os erros no formulário abaixo.")
+                logger.error(f"Erro ao enviar e-mail (Ticket {ticket.id}): {e}")
+                # Não impedimos o fluxo de sucesso, mas logamos o erro de integração
+            
+            return redirect('ticket_sucesso')
     else:
         form = TicketForm(user=request.user)
 
