@@ -7,87 +7,86 @@ from django.utils import timezone
 
 # --- FUNÇÕES AUXILIARES (Organização de Arquivos) ---
 
+
 def ticket_upload_path(instance, filename):
     """
     Gera um caminho organizado: tickets/ANO/MES/uuid_nomedoarquivo.ext
     Evita colisão de nomes e diretórios com milhares de arquivos.
     """
     # Se a instância ainda não tem ID (criação), usamos data
-    ext = filename.split('.')[-1]
+    ext = filename.split(".")[-1]
     new_filename = f"{uuid.uuid4().hex[:10]}.{ext}"
     today = timezone.now()
     return f"tickets/{today.year}/{today.month}/{new_filename}"
+
 
 def interacao_upload_path(instance, filename):
     """
     Organiza anexos do chat: tickets/ID_DO_TICKET/chat/nomedoarquivo
     """
     # Tenta pegar o ID do ticket. Se não existir, usa 'sem_ticket'
-    ticket_id = instance.ticket.id if instance.ticket else 'temp'
+    ticket_id = instance.ticket.id if instance.ticket else "temp"
     return f"tickets/{ticket_id}/chat/{filename}"
 
 
 # --- CONSTANTES DE STATUS (Limpeza Visual) ---
 MAXIMO_STATUS_CHOICES = [
-    ('NEW', 'Novo'),
-    ('QUEUED', 'Em fila'),
-    ('INPROG', 'Em Andamento'),
-    ('PENDING', 'Pendente'),
-    ('APPR', 'Aprovado'),
-    ('APPFML', 'Aprovado pelo Gerenciador de Cumprimento'),
-    ('APPLM', 'Aprovado pelo Gerente de Linha'),
-    ('RESOLVED', 'Resolvido'),
-    ('CLOSED', 'Fechado'),
-    ('CANCELLED', 'Cancelado'),
-    ('REJECTED', 'Rejeitado'),
-    ('DRAFT', 'Rascunho'),
-    ('HISTEDIT', 'Editado no Histórico'),
-    ('TSTCLI', 'Teste do cliente'),
-    ('TSTCLIOK', 'Teste do cliente OK'),
-    ('TSTCLIFAIL', 'Teste do cliente falhou'),
-    ('IMPPRODOK', 'Implementação em produção OK'),
-    ('AGREUN', 'Reunião Agendada'),
-    ('CRITFAIL', 'Falha Crítica'),
-    ('ROLLBACK', 'Rollback'),
-    ('TREINAMTO', 'Treinamento'),
-    ('DOC', 'Documentar'),
-    ('SLAHOLD', 'Espera de SLA'),
+    ("NEW", "Novo"),
+    ("QUEUED", "Em fila"),
+    ("INPROG", "Em Andamento"),
+    ("PENDING", "Pendente"),
+    ("APPR", "Aprovado"),
+    ("APPFML", "Aprovado pelo Gerenciador de Cumprimento"),
+    ("APPLM", "Aprovado pelo Gerente de Linha"),
+    ("RESOLVED", "Resolvido"),
+    ("CLOSED", "Fechado"),
+    ("CANCELLED", "Cancelado"),
+    ("REJECTED", "Rejeitado"),
+    ("DRAFT", "Rascunho"),
+    ("HISTEDIT", "Editado no Histórico"),
+    ("TSTCLI", "Teste do cliente"),
+    ("TSTCLIOK", "Teste do cliente OK"),
+    ("TSTCLIFAIL", "Teste do cliente falhou"),
+    ("IMPPRODOK", "Implementação em produção OK"),
+    ("AGREUN", "Reunião Agendada"),
+    ("CRITFAIL", "Falha Crítica"),
+    ("ROLLBACK", "Rollback"),
+    ("TREINAMTO", "Treinamento"),
+    ("DOC", "Documentar"),
+    ("SLAHOLD", "Espera de SLA"),
 ]
 
 PRIORIDADE_CHOICES = [
-    ('', 'Selecione...'),
-    ('1', '1 - Crítica'),
-    ('2', '2 - Alta'),
-    ('3', '3 - Média'),
-    ('4', '4 - Baixa'),
-    ('5', '5 - Sem Prioridade'),
+    ("", "Selecione..."),
+    ("1", "1 - Crítica"),
+    ("2", "2 - Alta"),
+    ("3", "3 - Média"),
+    ("4", "4 - Baixa"),
+    ("5", "5 - Sem Prioridade"),
 ]
 
 
 # --- MODELS ---
 
+
 class Cliente(AbstractUser):
     location = models.CharField(max_length=200, blank=True, null=True)
     person_id = models.CharField(max_length=150, blank=True, null=True)
-    email = models.EmailField(unique=True, verbose_name='Endereço de e-mail')
+    email = models.EmailField(unique=True, verbose_name="Endereço de e-mail")
 
     groups = models.ManyToManyField(
-        "auth.Group",
-        related_name="cliente_groups",
-        blank=True
+        "auth.Group", related_name="cliente_groups", blank=True
     )
     user_permissions = models.ManyToManyField(
-        "auth.Permission",
-        related_name="cliente_permissions",
-        blank=True
+        "auth.Permission", related_name="cliente_permissions", blank=True
     )
 
     class Meta:
         db_table = "clientes"
-    
+
     @property
     def is_consultor(self):
-        return self.groups.filter(name='Consultores').exists()
+        return self.groups.filter(name="Consultores").exists()
 
     @property
     def is_support_team(self):
@@ -95,71 +94,76 @@ class Cliente(AbstractUser):
 
 
 class Ambiente(models.Model):
-    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="ambientes")
+    cliente = models.ForeignKey(
+        Cliente, on_delete=models.CASCADE, related_name="ambientes"
+    )
     nome_ambiente = models.CharField(max_length=100)
     numero_ativo = models.CharField(max_length=20)
 
     def __str__(self):
         return f"{self.nome_ambiente} ({self.numero_ativo})"
-    
+
 
 class Area(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="areas")
     nome_area = models.CharField(max_length=100)
-    
+
     def __str__(self):
         return self.nome_area
 
 
 class Ticket(models.Model):
     # Vínculos
-    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="tickets")
-    ambiente = models.ForeignKey(Ambiente, on_delete=models.SET_NULL, null=True, blank=False)
+    cliente = models.ForeignKey(
+        Cliente, on_delete=models.CASCADE, related_name="tickets"
+    )
+    ambiente = models.ForeignKey(
+        Ambiente, on_delete=models.SET_NULL, null=True, blank=False
+    )
     area = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=True)
 
     # Dados do Chamado
     sumario = models.CharField(max_length=100, verbose_name="Resumo do Problema")
     descricao = models.TextField(verbose_name="Descrição Detalhada")
-    
+
     # Integração Maximo
     # MELHORIA: db_index=True acelera drasticamente as buscas pelo ID do Maximo
     maximo_id = models.CharField(
-        max_length=50, 
-        null=True, 
-        blank=True, 
+        max_length=50,
+        null=True,
+        blank=True,
         verbose_name="ID do Chamado (SR)",
-        db_index=True 
+        db_index=True,
     )
-    
+
     status_maximo = models.CharField(
-        max_length=20, 
-        default='NEW', 
+        max_length=20,
+        default="NEW",
         choices=MAXIMO_STATUS_CHOICES,
-        verbose_name="Status Atual"
+        verbose_name="Status Atual",
     )
 
     prioridade = models.CharField(
-        max_length=2, 
-        choices=PRIORIDADE_CHOICES, 
-        default='', 
+        max_length=2,
+        choices=PRIORIDADE_CHOICES,
+        default="",
         verbose_name="Prioridade",
-        blank=False
+        blank=False,
     )
 
     # MELHORIA: upload_to usa função para organizar pastas
     anexo = models.FileField(
-        upload_to=ticket_upload_path, 
-        null=True, 
-        blank=True, 
-        verbose_name="Anexo"
+        upload_to=ticket_upload_path, null=True, blank=True, verbose_name="Anexo"
     )
-    
+
     # Auditoria
     data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Aberto em")
-    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Última atualização")
+    data_atualizacao = models.DateTimeField(
+        auto_now=True, verbose_name="Última atualização"
+    )
 
     class Meta:
-        ordering = ['-data_criacao']
+        ordering = ["-data_criacao"]
         db_table = "tickets"
         verbose_name = "Ticket"
         verbose_name_plural = "Tickets"
@@ -171,42 +175,47 @@ class Ticket(models.Model):
     def badge_class(self):
         """Retorna a classe CSS do Bootstrap para o status."""
         status = self.status_maximo
-        if status in ['RESOLVED', 'TSTCLIOK', 'IMPPRODOK', 'APPR']:
-            return 'bg-success'
-        elif status in ['INPROG', 'PENDING', 'APPFML', 'APPLM', 'TSTCLI', 'AGREUN', 'TREINAMTO', 'DOC', 'SLAHOLD', 'QUEUED']:
-            return 'bg-warning text-dark'
-        elif status in ['TSTCLIFAIL', 'CRITFAIL', 'REJECTED', 'ROLLBACK']:
-            return 'bg-danger'
-        elif status in ['CLOSED', 'CANCELLED', 'HISTEDIT', 'DRAFT']:
-            return 'bg-secondary'
+        if status in ["RESOLVED", "TSTCLIOK", "IMPPRODOK", "APPR"]:
+            return "bg-success"
+        elif status in [
+            "INPROG",
+            "PENDING",
+            "APPFML",
+            "APPLM",
+            "TSTCLI",
+            "AGREUN",
+            "TREINAMTO",
+            "DOC",
+            "SLAHOLD",
+            "QUEUED",
+        ]:
+            return "bg-warning text-dark"
+        elif status in ["TSTCLIFAIL", "CRITFAIL", "REJECTED", "ROLLBACK"]:
+            return "bg-danger"
+        elif status in ["CLOSED", "CANCELLED", "HISTEDIT", "DRAFT"]:
+            return "bg-secondary"
         else:
-            return 'bg-primary'
+            return "bg-primary"
 
 
 class TicketInteracao(models.Model):
     ticket = models.ForeignKey(
-        Ticket, 
-        on_delete=models.CASCADE, 
-        related_name="interacoes"
+        Ticket, on_delete=models.CASCADE, related_name="interacoes"
     )
-    autor = models.ForeignKey(
-        Cliente, 
-        on_delete=models.CASCADE,
-        verbose_name="Autor"
-    )
+    autor = models.ForeignKey(Cliente, on_delete=models.CASCADE, verbose_name="Autor")
     mensagem = models.TextField(verbose_name="Mensagem")
-    
+
     # MELHORIA: upload_to organizado
     anexo = models.FileField(
-        upload_to=interacao_upload_path, 
-        null=True, 
+        upload_to=interacao_upload_path,
+        null=True,
         blank=True,
-        verbose_name="Anexo (Opcional)"
+        verbose_name="Anexo (Opcional)",
     )
     data_criacao = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['data_criacao']
+        ordering = ["data_criacao"]
         db_table = "ticket_interacoes"
         verbose_name = "Interação"
         verbose_name_plural = "Interações"
@@ -217,34 +226,36 @@ class TicketInteracao(models.Model):
     @property
     def is_support(self):
         return self.autor.is_support_team
-    
+
     @property
     def filename(self):
         if self.anexo:
             return os.path.basename(self.anexo.name)
         return None
-    
+
 
 class Notificacao(models.Model):
     TIPO_CHOICES = (
-        ('mensagem', 'Nova Mensagem'),
-        ('status', 'Mudança de Status'),
-        ('sistema', 'Aviso do Sistema'),
+        ("mensagem", "Nova Mensagem"),
+        ("status", "Mudança de Status"),
+        ("sistema", "Aviso do Sistema"),
     )
 
-    destinatario = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='notificacoes')
+    destinatario = models.ForeignKey(
+        Cliente, on_delete=models.CASCADE, related_name="notificacoes"
+    )
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, null=True, blank=True)
-    
+
     titulo = models.CharField(max_length=50, default="Nova Notificação")
-    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='sistema')
-    
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default="sistema")
+
     mensagem = models.CharField(max_length=255)
     lida = models.BooleanField(default=False)
     data_criacao = models.DateTimeField(auto_now_add=True)
     link = models.CharField(max_length=200, blank=True, null=True)
 
     class Meta:
-        ordering = ['-data_criacao']
+        ordering = ["-data_criacao"]
 
     def __str__(self):
         return f"{self.titulo} - {self.destinatario}"

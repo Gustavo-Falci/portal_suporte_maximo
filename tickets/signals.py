@@ -6,6 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 @receiver(pre_save, sender=Ticket)
 def monitorar_mudancas_ticket(sender, instance: Ticket, **kwargs):
     """
@@ -23,13 +24,14 @@ def monitorar_mudancas_ticket(sender, instance: Ticket, **kwargs):
 
     # Verifica mudança de status
     if old_instance.status_maximo != instance.status_maximo:
-        logger.info(f"Status Ticket #{instance.id}: {old_instance.status_maximo} -> {instance.status_maximo}")
-        
+        logger.info(
+            f"Status Ticket #{instance.id}: {old_instance.status_maximo} -> {instance.status_maximo}"
+        )
+
         try:
             # O Service agora cuida do E-mail E da Notificação Interna
             NotificationService.notificar_mudanca_status(
-                instance, 
-                old_instance.get_status_maximo_display()
+                instance, old_instance.get_status_maximo_display()
             )
         except Exception as e:
             logger.error(f"Erro notificação status (Ticket {instance.id}): {e}")

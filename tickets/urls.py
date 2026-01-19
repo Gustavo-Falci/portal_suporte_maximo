@@ -6,33 +6,40 @@ from . import views, forms
 
 # BEST PRACTICE: Define um namespace para facilitar reversão de URLs
 # Ex: reverse('tickets:detalhe_ticket') em vez de apenas 'detalhe_ticket'
-app_name = 'tickets'
+app_name = "tickets"
 
 urlpatterns = [
     # Páginas Públicas / Iniciais
-    path('', views.pagina_inicial, name='pagina_inicial'),
-
+    path("", views.pagina_inicial, name="pagina_inicial"),
     # Autenticação
-    path('login/', LoginView.as_view(
-        template_name='tickets/login.html', 
-        authentication_form=forms.EmailAuthenticationForm
-    ), name='login'),
-    
+    path(
+        "login/",
+        LoginView.as_view(
+            template_name="tickets/login.html",
+            authentication_form=forms.EmailAuthenticationForm,
+        ),
+        name="login",
+    ),
     # Dica: Certifique-se de ter LOGOUT_REDIRECT_URL = 'login' no settings.py
-    path('logout/', LogoutView.as_view(), name='logout'),
-
+    path("logout/", LogoutView.as_view(), name="logout"),
     # Fluxo de Tickets
-    path('criar/', views.criar_ticket, name='criar_ticket'),
-    path('sucesso/', views.ticket_sucesso, name='ticket_sucesso'),
-    path('meus-tickets/', views.meus_tickets, name='meus_tickets'),
-    path('ticket/<int:pk>/', views.detalhe_ticket, name='detalhe_ticket'),
-    
+    path("criar/", views.criar_ticket, name="criar_ticket"),
+    path("sucesso/", views.ticket_sucesso, name="ticket_sucesso"),
+    path("meus-tickets/", views.meus_tickets, name="meus_tickets"),
+    path("ticket/<int:pk>/", views.detalhe_ticket, name="detalhe_ticket"),
     # Área de Suporte
-    path('fila-atendimento/', views.fila_atendimento, name='fila_atendimento'),
-
+    path("fila-atendimento/", views.fila_atendimento, name="fila_atendimento"),
     # Funcionalidades Auxiliares (Anexos e Notificações)
-    path('interacao/anexo/<int:interacao_id>/', views.download_anexo_interacao, name='download_anexo'),
-    path('notificacao/ler/<int:notificacao_id>/', views.marcar_notificacao_lida, name='marcar_notificacao_lida'),
+    path(
+        "interacao/anexo/<int:interacao_id>/",
+        views.download_anexo_interacao,
+        name="download_anexo",
+    ),
+    path(
+        "notificacao/ler/<int:notificacao_id>/",
+        views.marcar_notificacao_lida,
+        name="marcar_notificacao_lida",
+    ),
 ]
 
 # Configuração para servir arquivos de mídia (Uploads) em ambiente de desenvolvimento
