@@ -6,9 +6,12 @@ from django.urls import reverse
 from .models import Ticket, TicketInteracao, Cliente, Notificacao, MAXIMO_STATUS_CHOICES
 from .forms import TicketForm, TicketInteracaoForm
 from django.db.models import Q
-from .services import MaximoEmailService
+from .services import MaximoEmailService, NotificationService
+from django.template.loader import  render_to_string
+from django.http import JsonResponse
 import logging
 import os
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -67,10 +70,10 @@ def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
     ticket = get_object_or_404(Ticket, pk=pk)
     origem = request.GET.get('origin')
 
-    # Permissão simplificada
+    # Permissão (mantida)
     if not (request.user.is_support_team or ticket.cliente == request.user):
         messages.error(request, "Você não tem permissão para visualizar este ticket.")
-        return redirect("tickets:meus_tickets")
+        return redirect("meus_tickets")
 
     if request.method == "POST":
         form = TicketInteracaoForm(request.POST, request.FILES)
@@ -79,20 +82,37 @@ def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
             interacao.ticket = ticket
             interacao.autor = request.user
             interacao.save()
+            
+            # --- 1. ENVIO DE E-MAIL EM SEGUNDO PLANO (THREADING) ---
+            # Isso impede que o usuário fique esperando o SMTP responder
+            email_thread = threading.Thread(
+                target=NotificationService.notificar_nova_interacao, 
+                args=(ticket, interacao)
+            )
+            email_thread.start()
+            
+            # Atualiza data de modificação
+            ticket.save() 
 
-            # Delegação para o Service
-            try:
-                MaximoEmailService.enviar_notificacao_chat(ticket, interacao, request.user)
-            except Exception as e:
-                logger.error(f"Erro notificação chat: {e}")
-            
-            ticket.save() # Atualiza modified_at
-            
-            url_destino = reverse("tickets:detalhe_ticket", args=[pk])
+            # --- 2. RESPOSTA PARA AJAX (SEM REFRESH) ---
+            # Verifica se a requisição veio do JavaScript
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                # Renderiza apenas o pedacinho do chat novo
+                html_mensagem = render_to_string(
+                    'tickets/partials/chat_message.html', 
+                    {'interacao': interacao, 'request': request}
+                )
+                return JsonResponse({'status': 'success', 'html': html_mensagem})
+
+            # Fallback para navegador sem JS (comportamento antigo)
+            url_destino = reverse('tickets:detalhe_ticket', args=[pk])
             if origem:
                 return redirect(f"{url_destino}?origin={origem}")
             return redirect(url_destino)
+            
         else:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
             messages.error(request, "Erro ao enviar mensagem.")
     else:
         form = TicketInteracaoForm()

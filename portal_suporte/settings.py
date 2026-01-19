@@ -188,3 +188,10 @@ MAXIMO_API_URL = os.getenv('MAXIMO_API_URL')
 MAXIMO_API_KEY = os.getenv('MAXIMO_API_KEY')
 
 MAXIMO_VERIFY_SSL = os.getenv('VERIFY', 'True').lower() == 'true'
+
+# Limite máximo do corpo da requisição (ex: 10MB)
+# O padrão é 2.5MB. Se você quer aceitar arquivos de 5MB + dados do form, ponha 10MB.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 200 * 1024 * 1024  # 10 MB
+
+# Limite máximo de um arquivo individual (ex: 5MB)
+FILE_UPLOAD_MAX_MEMORY_SIZE = 150 * 1024 * 1024   # 150 MB

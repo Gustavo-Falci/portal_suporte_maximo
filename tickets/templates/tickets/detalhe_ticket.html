@@ -66,65 +66,25 @@
                 <div class="flex-grow-1 ms-3 border-bottom"></div>
             </div>
 
-            <div class="interacoes-container mb-4 p-4 bg-light border-start border-end" style="max-height: 600px; overflow-y: auto;">
-                {% for msg in interacoes %}
-                    
-                    <div class="chat-row {% if msg.autor == request.user %}chat-me{% else %}chat-other{% endif %}">
-                        
-                        <div class="chat-avatar shadow-sm {% if msg.is_support %}avatar-support{% endif %}" title="{{ msg.autor.get_full_name }}">
-                            {% if msg.is_support %}
-                                <i class="bi bi-headset" style="font-size: 1.2rem;"></i>
-                            {% else %}
-                                <i class="bi bi-person-fill"></i>
-                            {% endif %}
-                        </div>
-
-                        <div class="card chat-bubble">
-                            <div class="card-header rounded-0 py-2 d-flex justify-content-between align-items-center ">
-                                <small class="fw-bold text-uppercase" style="font-size: 0.75rem;">
-                                    {% if msg.is_support %}
-                                        🛠️ {{ msg.autor.get_full_name|default:msg.autor.username }}
-                                    {% else %}
-                                        👤 {{ msg.autor.get_full_name|default:msg.autor.username }}
-                                    {% endif %}
-                                </small>
-                                <small class="font-monospace ms-3" style="font-size: 0.7rem; opacity: 0.9;">
-                                    {{ msg.data_criacao|date:"d/m/Y H:i" }}
-                                </small>
-                            </div>
-
-                            <div class="card-body pt-1 pb-2 px-3">
-                                <p class="mb-1 text-dark" style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.4;">{{ msg.mensagem }}</p>
-                                
-                                {% if msg.anexo %}
-                                    <div class="mt-2 pt-2 border-top">
-                                        <small>
-                                            <a href="{% url 'tickets:download_anexo' msg.id %}" class="text-decoration-none d-flex align-items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-paperclip me-1" viewBox="0 0 16 16">
-                                                    <path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0V3z"/>
-                                                </svg>
-                                                Anexo: {{ msg.filename|default:msg.anexo.name }}
-                                            </a>
-                                        </small>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                    </div>
-
-                {% empty %}
-                    <div class="text-center py-5 text-muted opacity-50">
-                        <i class="bi bi-chat-square-text fs-1 mb-2"></i>
+            <div id="chatContainer" class="interacoes-container mb-4 p-4 bg-light border-start border-end" style="max-height: 600px; overflow-y: auto;">
+                
+                {% if not interacoes %}
+                    <div id="emptyChatMsg" class="text-center text-muted py-4">
+                        <i class="bi bi-chat-square-text fs-1 mb-2 opacity-50"></i>
                         <p>Inicie a conversa enviando uma mensagem abaixo.</p>
                     </div>
+                {% endif %}
+
+                {% for interacao in interacoes %}
+                    {% include "tickets/partials/chat_message.html" %}
                 {% endfor %}
             </div>
 
             <div class="card bg-light border-0 rounded-0 mb-5">
                 <div class="card-body">
                     <h6 class="fw-bold mb-3">Nova Mensagem</h6>
-                    <form method="post" enctype="multipart/form-data">
+                    
+                    <form method="post" enctype="multipart/form-data" id="chatForm">
                         {% csrf_token %}
                         
                         <div class="mb-3">
@@ -137,6 +97,8 @@
                                     <span class="input-group-text rounded-0 bg-white border-secondary border-opacity-25">📎 Anexar</span>
                                     {{ form.anexo }}
                                 </div>
+                                
+                                <div id="fileErrorMsg" class="text-danger small fw-bold mt-1 d-none"></div> 
                             </div>
                             <div class="col-md-4 text-end">
                                 <button type="submit" class="btn btn-primary rounded-0 px-4 w-100">
@@ -204,4 +166,92 @@
         </div>
     </div>
 </div>
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const chatForm = document.getElementById("chatForm");
+        const chatContainer = document.getElementById("chatContainer");
+        const submitBtn = chatForm ? chatForm.querySelector("button[type='submit']") : null;
+        const fileErrorMsg = document.getElementById("fileErrorMsg"); // Captura a div de erro
+        const fileInput = document.querySelector('input[type="file"]'); // Captura o input
+
+        // Rola para o final
+        if(chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Limpa o erro assim que o usuário tentar selecionar outro arquivo
+        if(fileInput) {
+            fileInput.addEventListener('change', function() {
+                fileErrorMsg.classList.add('d-none');
+                fileErrorMsg.textContent = "";
+                fileInput.classList.remove('is-invalid');
+            });
+        }
+
+        if (chatForm) {
+            chatForm.addEventListener("submit", function(e) {
+                e.preventDefault();
+
+                // UI Feedback: Bloqueia botão
+                const originalBtnText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+                // Limpa erros anteriores
+                fileErrorMsg.classList.add('d-none');
+                if(fileInput) fileInput.classList.remove('is-invalid');
+
+                const formData = new FormData(chatForm);
+
+                fetch("{% url 'tickets:detalhe_ticket' ticket.id %}", {
+                    method: "POST",
+                    body: formData,
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    }
+                })
+                .then(response => {
+                    // Se o status for 400 (Bad Request), processamos o JSON de erro
+                    return response.json().then(data => ({ status: response.status, body: data }));
+                })
+                .then(result => {
+                    if (result.body.status === 'success') {
+                        // SUCESSO
+                        const emptyMsg = document.getElementById("emptyChatMsg");
+                        if (emptyMsg) emptyMsg.remove();
+
+                        chatContainer.insertAdjacentHTML('beforeend', result.body.html);
+                        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+                        chatForm.reset();
+                    } else {
+                        // ERRO DETECTADO
+                        // Verifica se existe erro especificamente no campo 'anexo'
+                        if (result.body.errors && result.body.errors.anexo) {
+                            fileErrorMsg.textContent = result.body.errors.anexo[0]; // Pega a 1ª mensagem
+                            fileErrorMsg.classList.remove('d-none'); // Mostra a div
+                            if(fileInput) fileInput.classList.add('is-invalid'); // Pinta borda de vermelho
+                        } else if (result.body.errors && result.body.errors.mensagem) {
+                            alert("Erro na mensagem: " + result.body.errors.mensagem[0]);
+                        } else {
+                            alert("Erro desconhecido ao enviar. Verifique o arquivo.");
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error("Erro:", error);
+                    alert("Ocorreu um erro de conexão.");
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}
+
 {% endblock %}

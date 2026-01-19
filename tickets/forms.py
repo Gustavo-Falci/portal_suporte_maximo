@@ -19,14 +19,14 @@ def _validar_anexo_comum(arquivo):
     # 1. Validar tamanho (Limite: 5MB)
     limit_mb = 150
     if arquivo.size > limit_mb * 1024 * 1024:
-        raise ValidationError(f"O ficheiro é muito grande. Máximo permitido: {limit_mb}MB.")
+        raise ValidationError(f"O arquivo é muito grande. Máximo permitido: {limit_mb}MB.")
     
     # 2. Validar extensão
     ext = os.path.splitext(arquivo.name)[1].lower()
     extensoes_validas = ['.pdf', '.png', '.jpg', '.jpeg', '.txt', '.xlsx', '.xls', '.docx', '.doc', '.csv', '.zip', '.rar', '.xml']
     
     if ext not in extensoes_validas:
-        raise ValidationError(f"Extensão '{ext}' não permitida. Use apenas PDF, Imagens ou Office.")
+        raise ValidationError(f"Arquivo '{ext}' não permitido. Use apenas PDF, Imagens, Word, zip...")
     
     # 3. Validação de MIME type (Segurança reforçada)
     # Adivinha o tipo baseado no nome do ficheiro (não é perfeito, mas ajuda)
@@ -87,23 +87,33 @@ class EmailAuthenticationForm(AuthenticationForm):
 class TicketForm(forms.ModelForm):
     """
     Formulário principal de abertura de chamados.
+    Adaptado para aceitar o campo HTML 'arquivo' e salvar no Model 'anexo'.
     """
+    # Campo explícito para bater com o name="arquivo" do seu HTML
+    arquivo = forms.FileField(
+        required=False, 
+        widget=forms.FileInput(attrs={'class': 'form-control'}),
+        label="Anexo de Evidência"
+    )
+
     class Meta:
         model = Ticket
-        fields = ['sumario', 'descricao', 'ambiente', 'prioridade', 'area', 'anexo']
+        # Removemos 'anexo' da lista automática, pois vamos tratar manualmente via 'arquivo'
+        fields = ['sumario', 'descricao', 'ambiente', 'prioridade', 'area'] 
         
         widgets = {
             'sumario': forms.TextInput(attrs={
                 'class': 'form-control', 
+                'placeholder': 'Resumo curto do problema'
             }),
             'descricao': forms.Textarea(attrs={
                 'class': 'form-control', 
                 'rows': 5, 
+                'placeholder': 'Descreva detalhadamente o que aconteceu...'
             }),
             'ambiente': forms.Select(attrs={'class': 'form-select'}),
             'prioridade': forms.Select(attrs={'class': 'form-select'}),
             'area': forms.Select(attrs={'class': 'form-select'}),
-            'anexo': forms.FileInput(attrs={'class': 'form-control'})
         }
 
     def __init__(self, *args, **kwargs):
@@ -113,26 +123,37 @@ class TicketForm(forms.ModelForm):
         if user:
             self.fields['ambiente'].queryset = Ambiente.objects.filter(cliente=user)
             
-            # Lógica de Área baseada no LOCATION
-            # Tratamento seguro caso location seja None
             location_str = str(user.location).upper() if getattr(user, 'location', None) else ""
-            
-            # Verifica se pertence às empresas que exigem Área
             empresas_com_area = ["PAMPA", "ABL"]
-            # any() verifica se alguma das empresas está na string location
             tem_acesso_area = any(empresa in location_str for empresa in empresas_com_area)
 
             if tem_acesso_area:
                 self.fields['area'].queryset = Area.objects.filter(cliente=user)
-                self.fields['area'].required = False
+                self.fields['area'].required = True
             else:
                 self.fields['area'].queryset = Area.objects.none()
                 self.fields['area'].required = False
                 self.fields['area'].widget = forms.HiddenInput()
 
-    def clean_anexo(self):
-        # Reutiliza a lógica centralizada
-        return _validar_anexo_comum(self.cleaned_data.get('anexo'))
+    def clean_arquivo(self):
+        """Valida o campo 'arquivo' vindo do HTML."""
+        # Usa a função de validação comum que criamos anteriormente
+        return _validar_anexo_comum(self.cleaned_data.get('arquivo'))
+
+    def save(self, commit=True):
+        """Move o arquivo validado para o campo correto do modelo antes de salvar."""
+        ticket = super().save(commit=False)
+        
+        # Pega o arquivo limpo e validado
+        arquivo_validado = self.cleaned_data.get('arquivo')
+        
+        if arquivo_validado:
+            # Mapeia: Form 'arquivo' -> Model 'anexo'
+            ticket.anexo = arquivo_validado
+        
+        if commit:
+            ticket.save()
+        return ticket
 
 
 # 3. FORMULÁRIO DE INTERAÇÃO (RESPOSTAS)

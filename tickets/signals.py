@@ -35,7 +35,6 @@ def monitorar_mudancas_ticket(sender, instance: Ticket, **kwargs):
             logger.error(f"Erro notificação status (Ticket {instance.id}): {e}")
 
 
-@receiver(post_save, sender=TicketInteracao)
 def post_save_interacao(sender, instance, created, **kwargs):
     """
     Disparado após salvar uma mensagem no chat.
