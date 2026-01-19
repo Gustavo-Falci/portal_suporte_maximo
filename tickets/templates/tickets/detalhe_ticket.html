@@ -84,11 +84,13 @@
                 <div class="card-body">
                     <h6 class="fw-bold mb-3">Nova Mensagem</h6>
                     
-                    <form method="post" enctype="multipart/form-data" id="chatForm">
+                    <form method="post" enctype="multipart/form-data" id="chatForm" novalidate>
                         {% csrf_token %}
                         
                         <div class="mb-3">
                             {{ form.mensagem }}
+
+                            <div id="msgError" class="invalid-feedback text-start"></div>
                         </div>
                         
                         <div class="row align-items-center">
@@ -173,20 +175,36 @@
         const chatForm = document.getElementById("chatForm");
         const chatContainer = document.getElementById("chatContainer");
         const submitBtn = chatForm ? chatForm.querySelector("button[type='submit']") : null;
-        const fileErrorMsg = document.getElementById("fileErrorMsg"); // Captura a div de erro
-        const fileInput = document.querySelector('input[type="file"]'); // Captura o input
+        
+        // Elementos de Erro
+        const fileErrorMsg = document.getElementById("fileErrorMsg");
+        const fileInput = document.querySelector('input[type="file"]');
+        
+        // NOVO: Elementos de erro da Mensagem
+        const msgError = document.getElementById("msgError");
+        const msgInput = document.getElementById("id_mensagem"); // ID padrão do Django para o campo mensagem
 
-        // Rola para o final
+        // Rola para o final do chat
         if(chatContainer) {
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Limpa o erro assim que o usuário tentar selecionar outro arquivo
+        // --- FUNÇÕES DE LIMPEZA DE ERRO ---
+        // Limpa erro do Arquivo
         if(fileInput) {
             fileInput.addEventListener('change', function() {
-                fileErrorMsg.classList.add('d-none');
+                fileErrorMsg.style.display = 'none';
                 fileErrorMsg.textContent = "";
                 fileInput.classList.remove('is-invalid');
+            });
+        }
+
+        // NOVO: Limpa erro da Mensagem ao digitar
+        if(msgInput) {
+            msgInput.addEventListener('input', function() {
+                msgError.style.display = 'none';
+                msgError.textContent = "";
+                msgInput.classList.remove('is-invalid');
             });
         }
 
@@ -194,14 +212,16 @@
             chatForm.addEventListener("submit", function(e) {
                 e.preventDefault();
 
-                // UI Feedback: Bloqueia botão
+                // UI Feedback
                 const originalBtnText = submitBtn.innerHTML;
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
-                // Limpa erros anteriores
-                fileErrorMsg.classList.add('d-none');
+                // Limpa erros anteriores antes de enviar
+                if(fileErrorMsg) fileErrorMsg.style.display = 'none';
                 if(fileInput) fileInput.classList.remove('is-invalid');
+                if(msgError) msgError.style.display = 'none';
+                if(msgInput) msgInput.classList.remove('is-invalid');
 
                 const formData = new FormData(chatForm);
 
@@ -214,7 +234,6 @@
                     }
                 })
                 .then(response => {
-                    // Se o status for 400 (Bad Request), processamos o JSON de erro
                     return response.json().then(data => ({ status: response.status, body: data }));
                 })
                 .then(result => {
@@ -227,16 +246,24 @@
                         chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
                         chatForm.reset();
                     } else {
-                        // ERRO DETECTADO
-                        // Verifica se existe erro especificamente no campo 'anexo'
+                        // ERRO DETECTADO (Backend retornou erro)
+                        
+                        // 1. Erro na Mensagem (ex: campo vazio)
+                        if (result.body.errors && result.body.errors.mensagem) {
+                            if(msgInput && msgError) {
+                                msgInput.classList.add('is-invalid'); // Borda vermelha
+                                msgError.textContent = result.body.errors.mensagem[0]; // Texto do erro
+                                msgError.style.display = 'block'; // Mostra div
+                            }
+                        }
+
+                        // 2. Erro no Anexo (ex: extensão inválida)
                         if (result.body.errors && result.body.errors.anexo) {
-                            fileErrorMsg.textContent = result.body.errors.anexo[0]; // Pega a 1ª mensagem
-                            fileErrorMsg.classList.remove('d-none'); // Mostra a div
-                            if(fileInput) fileInput.classList.add('is-invalid'); // Pinta borda de vermelho
-                        } else if (result.body.errors && result.body.errors.mensagem) {
-                            alert("Erro na mensagem: " + result.body.errors.mensagem[0]);
-                        } else {
-                            alert("Erro desconhecido ao enviar. Verifique o arquivo.");
+                            if(fileInput && fileErrorMsg) {
+                                fileInput.classList.add('is-invalid');
+                                fileErrorMsg.textContent = result.body.errors.anexo[0];
+                                fileErrorMsg.style.display = 'block';
+                            }
                         }
                     }
                 })

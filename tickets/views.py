@@ -38,13 +38,20 @@ def meus_tickets(request: HttpRequest) -> HttpResponse:
     Exibe a lista de tickets abertos pelo usuário logado.
     """
     # select_related busca as ForeignKeys numa única query SQL (JOIN)
-    tickets = (
-        Ticket.objects.filter(cliente=request.user)
-        .select_related("area", "ambiente")
-        .order_by("-data_criacao")
-    )
+    # 1. Mantém a sua busca atual (Exemplo genérico)
+    tickets = Ticket.objects.filter(cliente=request.user).select_related('area', 'ambiente').order_by('-data_criacao')
 
-    return render(request, "tickets/meus_tickets.html", {"tickets": tickets})
+    # 2. APLICA A PAGINAÇÃO (Limite de 10)
+    paginator = Paginator(tickets, 10) 
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        # Passamos 'page_obj' mas com o nome 'tickets' para não quebrar o loop do HTML
+        "tickets": page_obj, 
+    }
+    
+    return render(request, "tickets/meus_tickets.html", context)
 
 
 # CRIAR TICKET

@@ -27,7 +27,7 @@
                 <table class="table table-hover mb-0 align-middle" style="font-family: 'IBM Plex Mono', monospace;">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="py-3" style="width: 200px;">ID</th>
+                            <th scope="col" class="py-3 ps-4" style="width: 200px;">ID</th>
                             <th scope="col" class="py-3" style="width: auto;">Descrição</th>
                             <th scope="col" class="py-3" style="width: 200px;">Aberto em</th>
                             <th scope="col" class="py-3" style="width: 120px;">Status</th>
@@ -37,7 +37,7 @@
                     <tbody>
                         {% for ticket in tickets %}
                         <tr>
-                            <td>
+                            <td class="ps-4">
                                 {% if ticket.maximo_id %}
                                     <span class="badge bg-light text-dark border font-monospace">
                                         {{ ticket.maximo_id }}
@@ -83,8 +83,58 @@
                 </table>
             </div>
         </div>
-        <div class="card-footer bg-white border-top-0 py-3">
-            <small class="text-muted">{{ tickets|length }} registros</small>
+
+        <div class="card-footer bg-white border-top py-3 px-4 d-flex justify-content-between align-items-center">
+            
+            <small class="text-muted">
+                Mostrando {{ tickets.start_index }} a {{ tickets.end_index }} de {{ tickets.paginator.count }} registros
+            </small>
+
+            {% if tickets.has_other_pages %}
+            <nav aria-label="Navegação de tickets">
+                <ul class="pagination mb-0">
+                    
+                    {% if tickets.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link rounded-0" href="?page={{ tickets.previous_page_number }}&{{ request.GET.urlencode|cut:'page=' }}" aria-label="Anterior">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link rounded-0">&laquo;</span>
+                        </li>
+                    {% endif %}
+
+                    {% for num in tickets.paginator.page_range %}
+                        {% if tickets.number == num %}
+                            <li class="page-item active" aria-current="page">
+                                <span class="page-link rounded-0">{{ num }}</span>
+                            </li>
+                        {% elif num > tickets.number|add:'-3' and num < tickets.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link rounded-0" href="?page={{ num }}&{{ request.GET.urlencode|cut:'page=' }}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if tickets.has_next %}
+                        <li class="page-item">
+                            <a class="page-link rounded-0" href="?page={{ tickets.next_page_number }}&{{ request.GET.urlencode|cut:'page=' }}" aria-label="Próximo">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link rounded-0">&raquo;</span>
+                        </li>
+                    {% endif %}
+
+                </ul>
+            </nav>
+            {% endif %}
         </div>
     </div>
 </div>
