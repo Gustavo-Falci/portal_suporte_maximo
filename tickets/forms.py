@@ -17,7 +17,7 @@ def _validar_anexo_comum(arquivo):
     if not arquivo:
         return None
 
-    # 1. Validar tamanho (Limite: 5MB)
+    # 1. Validar tamanho (Limite: 150MB)
     limit_mb = 150
     if arquivo.size > limit_mb * 1024 * 1024:
         raise ValidationError(
@@ -40,6 +40,8 @@ def _validar_anexo_comum(arquivo):
         ".zip",
         ".rar",
         ".xml",
+        ".pptx",
+        ".ppt",
     ]
 
     if ext not in extensoes_validas:
@@ -62,6 +64,8 @@ def _validar_anexo_comum(arquivo):
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "application/msword",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-powerpoint", 
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     ]
 
     if content_type_guess:
@@ -70,7 +74,7 @@ def _validar_anexo_comum(arquivo):
 
         if not (is_valid or is_text):
             raise ValidationError(
-                f"Formato de ficheiro inválido ({content_type_guess})."
+                f"Formato de arquivo inválido ({content_type_guess})."
             )
             # pass
     return arquivo

@@ -126,7 +126,7 @@
                         type="file" 
                         id="arquivo" 
                         name="arquivo"
-                        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.rar,.xml">
+                        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.rar,.xml,.pptx,.ppt">
                     
                     <div id="jsFileError" class="invalid-feedback text-start"></div>
 
@@ -161,7 +161,7 @@
         const MAX_SIZE_MB = 150;
         const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
         // Adicionei as extensões que apareciam no seu print
-        const ALLOWED_EXTS = ['.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.csv', '.zip', '.rar', '.xml'];
+        const ALLOWED_EXTS = ['.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.csv', '.zip', '.rar', '.xml', '.pptx', '.ppt'];
 
         // --- 2. SELETORES ---
         const fileInput = document.getElementById('arquivo'); 
