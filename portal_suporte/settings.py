@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "tickets", # App
+    "tickets.apps.TicketsConfig", # App
 ]
 
 MIDDLEWARE = [
@@ -133,8 +133,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "tickets.Cliente"
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "pagina_inicial"
-LOGOUT_REDIRECT_URL = "login"
+LOGIN_REDIRECT_URL = "tickets:pagina_inicial"
+LOGOUT_REDIRECT_URL = "tickets:login"
 
 AUTHENTICATION_BACKENDS = [
     "tickets.backend.EmailBackend", 

@@ -2,7 +2,7 @@ import requests
 import logging
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from tickets.models import Ticket
+from tickets.models import Ticket, MAXIMO_STATUS_CHOICES
 from requests.adapters import HTTPAdapter, Retry
 
 # Configuração de Log
@@ -177,7 +177,7 @@ class Command(BaseCommand):
         # Verifica Status
         if ticket.status_maximo != novo_status:
             # Validação se o status existe na lista do Django
-            status_valido = any(choice[0] == novo_status for choice in Ticket.MAXIMO_STATUS_CHOICES)
+            status_valido = any(choice[0] == novo_status for choice in MAXIMO_STATUS_CHOICES)
             
             if status_valido:
                 ticket.status_maximo = novo_status

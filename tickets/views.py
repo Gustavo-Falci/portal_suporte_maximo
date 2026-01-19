@@ -1,11 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpRequest, FileResponse
-from django.core.mail import EmailMessage
-from django.conf import settings
 from django.contrib import messages
 from django.urls import reverse
-from .models import Ticket, TicketInteracao, Cliente, Notificacao
+from .models import Ticket, TicketInteracao, Cliente, Notificacao, MAXIMO_STATUS_CHOICES
 from .forms import TicketForm, TicketInteracaoForm
 from django.db.models import Q
 from .services import MaximoEmailService
@@ -41,65 +39,23 @@ def meus_tickets(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="/login/")
 def criar_ticket(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
-        
         form = TicketForm(request.POST, request.FILES, user=request.user)
         
         if form.is_valid():
             ticket = form.save(commit=False)
             ticket.cliente = request.user
-
-            try:
-
-                anexo_upload = request.FILES.get("arquivo")
-
-                if anexo_upload:
-                    # Atribuímos manualmente ao campo certo do modelo ('anexo')
-                    ticket.anexo = anexo_upload
-                
-                ticket.save()
-                
-                destinatario = settings.EMAIL_DESTINATION
-                remetente = settings.DEFAULT_FROM_EMAIL
-
-                corpo_email = MaximoEmailService.gerar_corpo_email(ticket, request.user)
-                
-                email = EmailMessage(
-                    subject=f"Novo Ticket - {ticket.sumario}", 
-                    body=corpo_email,
-                    from_email=remetente,
-                    to=[destinatario],
-                    reply_to=[request.user.email],
-                )
-
-                email.content_subtype = "html"
-
-                if anexo_upload:
-                    try:
-                        anexo_upload.seek(0)
-                        
-                        # 3. Pega os dados do próprio objeto de upload
-                        nome_arquivo = anexo_upload.name
-                        conteudo = anexo_upload.read()
-                        
-                        # O navegador já manda o tipo (ex: application/pdf), é mais seguro usar ele
-                        content_type = anexo_upload.content_type 
-                        if not content_type:
-                            content_type = 'application/octet-stream'
-
-                        # 4. Anexa ao e-mail
-                        email.attach(nome_arquivo, conteudo, content_type)
-                        
-                    except Exception as e:
-                        logger.error(f"Erro ao anexar arquivo da memória: {e}")
-
-                # Envia
-                email.send()
-                
-            except Exception as e:
-                logger.error(f"Erro ao enviar e-mail (Ticket {ticket.id}): {e}")
-                # Não impedimos o fluxo de sucesso, mas logamos o erro de integração
             
-            return redirect('ticket_sucesso')
+            # Tratamento de upload simplificado na view
+            anexo_upload = request.FILES.get("arquivo")
+            if anexo_upload:
+                ticket.anexo = anexo_upload
+            
+            ticket.save()
+            
+            # O código "sujo" de e-mail foi substituído por uma única linha:
+            MaximoEmailService.enviar_ticket_maximo(ticket, request.user, anexo_upload)
+            
+            return redirect('tickets:ticket_sucesso')
     else:
         form = TicketForm(user=request.user)
 
@@ -108,27 +64,14 @@ def criar_ticket(request: HttpRequest) -> HttpResponse:
 # DETALHE DO TICKET
 @login_required(login_url="/login/")
 def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
-    """
-    Exibe detalhes do ticket, processa o chat interno e controla a navegação de "Voltar".
-    """
-    # 1. Busca Ticket
     ticket = get_object_or_404(Ticket, pk=pk)
-    
-    # 2. Captura a origem da URL (ex: ?origin=fila)
-    # Isso é essencial para o botão "Voltar" saber para onde ir
     origem = request.GET.get('origin')
 
-    tem_permissao = False
-    
-    # Se for staff/consultor OU dono do ticket
-    if request.user.is_support_team or ticket.cliente == request.user:
-        tem_permissao = True
-
-    if not tem_permissao:
+    # Permissão simplificada
+    if not (request.user.is_support_team or ticket.cliente == request.user):
         messages.error(request, "Você não tem permissão para visualizar este ticket.")
-        return redirect("meus_tickets")
+        return redirect("tickets:meus_tickets")
 
-    # 4. Chat (POST)
     if request.method == "POST":
         form = TicketInteracaoForm(request.POST, request.FILES)
         if form.is_valid():
@@ -137,32 +80,25 @@ def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
             interacao.autor = request.user
             interacao.save()
 
-            # Notificação por E-mail 
+            # Delegação para o Service
             try:
-                _enviar_notificacao_chat(ticket, interacao, request.user)
+                MaximoEmailService.enviar_notificacao_chat(ticket, interacao, request.user)
             except Exception as e:
-                # Loga o erro mas não trava a tela do usuário
-                logger.error(f"Erro ao enviar notificação de chat no ticket {ticket.maximo_id}: {e}")
+                logger.error(f"Erro notificação chat: {e}")
             
-            # Atualiza data de modificação do ticket (importante para ordenação)
-            ticket.save() 
+            ticket.save() # Atualiza modified_at
             
-            # 5. Redirecionamento Inteligente (Mantém o ?origin=fila após o POST)
-            # Sem isso, ao enviar uma mensagem, o botão voltar quebraria
-            url_destino = reverse('detalhe_ticket', args=[pk])
+            url_destino = reverse("tickets:detalhe_ticket", args=[pk])
             if origem:
                 return redirect(f"{url_destino}?origin={origem}")
             return redirect(url_destino)
-            
         else:
-            messages.error(request, "Erro ao enviar mensagem. Verifique os campos.")
+            messages.error(request, "Erro ao enviar mensagem.")
     else:
         form = TicketInteracaoForm()
 
-    # 6. Busca as mensagens
     interacoes = ticket.interacoes.select_related('autor').all()
 
-    # 7. Contexto
     context = {
         "ticket": ticket,
         "interacoes": interacoes,
@@ -179,7 +115,7 @@ def fila_atendimento(request: HttpRequest) -> HttpResponse:
     # 1. Segurança
     if not request.user.is_support_team:
         messages.warning(request, "Acesso restrito à equipe de suporte.")
-        return redirect("meus_tickets")
+        return redirect("tickets:meus_tickets")
 
     # 2. Base da Query
     tickets = Ticket.objects.all().select_related('cliente', 'ambiente').order_by('-data_criacao')
@@ -216,7 +152,7 @@ def fila_atendimento(request: HttpRequest) -> HttpResponse:
                                      .distinct()\
                                      .order_by('location')
     
-    status_choices = Ticket.MAXIMO_STATUS_CHOICES
+    status_choices = MAXIMO_STATUS_CHOICES
 
     # 6. Estatísticas Rápidas (Opcional, mas fica pro)
     stats = {
@@ -247,12 +183,12 @@ def download_anexo_interacao(request: HttpRequest, interacao_id: int) -> HttpRes
     # (Reaproveitando a lógica is_support_team do seu Model Cliente)
     if ticket.cliente != request.user and not request.user.is_support_team:
         messages.error(request, "Você não tem permissão para acessar este arquivo.")
-        return redirect("detalhe_ticket", pk=ticket.id)
+        return redirect("tickets:detalhe_ticket", pk=ticket.id)
 
     # 3. Verifica se o campo anexo está preenchido
     if not interacao.anexo:
         messages.warning(request, "Esta interação não possui anexo.")
-        return redirect("detalhe_ticket", pk=ticket.id)
+        return redirect("tickets:detalhe_ticket", pk=ticket.id)
 
     try:
         # 4. Tenta abrir o arquivo
@@ -270,83 +206,13 @@ def download_anexo_interacao(request: HttpRequest, interacao_id: int) -> HttpRes
     except FileNotFoundError:
         # 5. Tratamento de Erro: Arquivo consta no banco, mas não no disco
         messages.error(request, "Arquivo indisponivel, contate o suporte.")
-        return redirect("detalhe_ticket", pk=ticket.id)
+        return redirect("tickets:detalhe_ticket", pk=ticket.id)
         
     except Exception as e:
         # 6. Erro genérico (ex: permissão de leitura no disco, erro de IO)
         messages.error(request, f"Erro ao tentar abrir o anexo: {str(e)}")
-        return redirect("detalhe_ticket", pk=ticket.id)
+        return redirect("tickets:detalhe_ticket", pk=ticket.id)
     
-def _enviar_notificacao_chat(ticket: Ticket, interacao: TicketInteracao, autor) -> None:
-    """
-    Envia e-mails de notificação de novas mensagens no chat.
-    
-    Lógica:
-    - Se o Autor for do Time de Suporte -> Envia e-mail para o CLIENTE.
-    - Se o Autor for o Cliente -> Envia e-mail para o SUPORTE.
-    """
-    
-    # Configuração de E-mail de Suporte (Fallback seguro caso não esteja no settings)
-    email_suporte_destino = getattr(settings, 'SUPPORT_EMAIL_ADDRESS', 'suportebr@itconsol.com')
-    remetente = settings.DEFAULT_FROM_EMAIL
-    
-    assunto = ""
-    corpo_email = ""
-    destinatarios = []
-
-    # Verifica se quem escreveu faz parte do time de suporte
-    is_support_msg = autor.is_support_team
-
-    if is_support_msg:
-        # CENÁRIO 1: Suporte respondeu -> Avisar Cliente
-        assunto = f"[Portal Suporte] Nova resposta no Ticket #{ticket.maximo_id} - {ticket.sumario}"
-        destinatarios = [ticket.cliente.email]
-        
-        corpo_email = f"""
-        Olá, {ticket.cliente.first_name or ticket.cliente.username}.<br><br>
-        
-        A equipe de suporte respondeu ao seu ticket <strong>#{ticket.maximo_id}</strong>.<br><br>
-        
-        <strong>Mensagem:</strong><br>
-        <div style="background-color: #f4f4f4; padding: 10px; border-left: 4px solid #0f62fe;">
-            {interacao.mensagem}
-        </div><br><br>
-        
-        Acesse o portal para responder ou ver anexos.
-        """
-        
-    else:
-        # CENÁRIO 2: Cliente respondeu -> Avisar Suporte
-        assunto = f"[Alerta] Cliente respondeu o Ticket #{ticket.maximo_id} - {ticket.sumario}"
-        destinatarios = [email_suporte_destino]
-        
-        location_info = getattr(ticket.cliente, 'location', 'N/A')
-        
-        corpo_email = f"""
-        Equipe,<br><br>
-        
-        O cliente <strong>{ticket.cliente.username}</strong> (Local: {location_info}) enviou uma nova mensagem.<br><br>
-        
-        <strong>Ticket:</strong> #{ticket.maximo_id}<br>
-        <strong>Sumário:</strong> {ticket.sumario}<br><br>
-        
-        <strong>Mensagem:</strong><br>
-        <div style="background-color: #f4f4f4; padding: 10px; border-left: 4px solid #198038;">
-            {interacao.mensagem}
-        </div>
-        """
-
-    # Envio efetivo
-    if destinatarios:
-        email = EmailMessage(
-            subject=assunto,
-            body=corpo_email,
-            from_email=remetente,
-            to=destinatarios
-        )
-        email.content_subtype = "html" # Permite usar HTML no corpo
-        email.send()
-
 @login_required
 def marcar_notificacao_lida(request, notificacao_id):
     notificacao = get_object_or_404(Notificacao, pk=notificacao_id, destinatario=request.user)
@@ -357,4 +223,4 @@ def marcar_notificacao_lida(request, notificacao_id):
     # Redireciona para o link da notificação (ex: detalhe do ticket)
     if notificacao.link:
         return redirect(notificacao.link)
-    return redirect('pagina_inicial')
+    return redirect('tickets:pagina_inicial')

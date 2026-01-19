@@ -19,7 +19,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark-ibm fixed-top">
         
         <div class="container-fluid px-4">
-            <a class="navbar-brand fw-bold d-flex align-items-center" href="{% url 'pagina_inicial' %}">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="{% url 'tickets:pagina_inicial' %}">
                 <img src="{% static 'tickets/img/ITCONSOL.png' %}" alt="Logo" class="me-3" style="height: 100px; width: auto;">
             </a>
 
@@ -34,11 +34,11 @@
             <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
                 <ul class="navbar-nav align-items-center">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'meus_tickets' %}">Meus Tickets</a>
+                        <a class="nav-link" href="{% url 'tickets:meus_tickets' %}">Meus Tickets</a>
                     </li>
                     {% if user.is_support_team %}
                     <li class="nav-item ms-lg-2">
-                        <a class="nav-link text-warning fw-bold" href="{% url 'fila_atendimento' %}">
+                        <a class="nav-link text-warning fw-bold" href="{% url 'tickets:fila_atendimento' %}">
                             <i class="bi bi-inbox-fill me-1"></i> Tickets de Suporte
                         </a>
                     </li>
@@ -69,7 +69,7 @@
                                 {% for notif in notificacoes_list %}
                                 <li>
                                     <a class="dropdown-item p-3 border-bottom {% if not notif.lida %}bg-light{% endif %}" 
-                                    href="{% url 'marcar_notificacao_lida' notif.id %}">
+                                    href="{% url 'tickets:marcar_notificacao_lida' notif.id %}">
                                         
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <strong class="text-primary font-monospace" style="font-size: 0.85rem;">
@@ -112,7 +112,7 @@
                     </li>
 
                     <li class="nav-item">
-                            <form action="{% url 'logout' %}" method="post" class="d-inline">
+                            <form action="{% url 'tickets:logout' %}" method="post" class="d-inline">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-sm btn-outline-light">Sair</button>
                         </form>

@@ -1,11 +1,75 @@
+import os
+import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
-import os
+from django.utils import timezone
+
+# --- FUNÇÕES AUXILIARES (Organização de Arquivos) ---
+
+def ticket_upload_path(instance, filename):
+    """
+    Gera um caminho organizado: tickets/ANO/MES/uuid_nomedoarquivo.ext
+    Evita colisão de nomes e diretórios com milhares de arquivos.
+    """
+    # Se a instância ainda não tem ID (criação), usamos data
+    ext = filename.split('.')[-1]
+    new_filename = f"{uuid.uuid4().hex[:10]}.{ext}"
+    today = timezone.now()
+    return f"tickets/{today.year}/{today.month}/{new_filename}"
+
+def interacao_upload_path(instance, filename):
+    """
+    Organiza anexos do chat: tickets/ID_DO_TICKET/chat/nomedoarquivo
+    """
+    # Tenta pegar o ID do ticket. Se não existir, usa 'sem_ticket'
+    ticket_id = instance.ticket.id if instance.ticket else 'temp'
+    return f"tickets/{ticket_id}/chat/{filename}"
+
+
+# --- CONSTANTES DE STATUS (Limpeza Visual) ---
+MAXIMO_STATUS_CHOICES = [
+    ('NEW', 'Novo'),
+    ('QUEUED', 'Em fila'),
+    ('INPROG', 'Em Andamento'),
+    ('PENDING', 'Pendente'),
+    ('APPR', 'Aprovado'),
+    ('APPFML', 'Aprovado pelo Gerenciador de Cumprimento'),
+    ('APPLM', 'Aprovado pelo Gerente de Linha'),
+    ('RESOLVED', 'Resolvido'),
+    ('CLOSED', 'Fechado'),
+    ('CANCELLED', 'Cancelado'),
+    ('REJECTED', 'Rejeitado'),
+    ('DRAFT', 'Rascunho'),
+    ('HISTEDIT', 'Editado no Histórico'),
+    ('TSTCLI', 'Teste do cliente'),
+    ('TSTCLIOK', 'Teste do cliente OK'),
+    ('TSTCLIFAIL', 'Teste do cliente falhou'),
+    ('IMPPRODOK', 'Implementação em produção OK'),
+    ('AGREUN', 'Reunião Agendada'),
+    ('CRITFAIL', 'Falha Crítica'),
+    ('ROLLBACK', 'Rollback'),
+    ('TREINAMTO', 'Treinamento'),
+    ('DOC', 'Documentar'),
+    ('SLAHOLD', 'Espera de SLA'),
+]
+
+PRIORIDADE_CHOICES = [
+    ('', 'Selecione...'),
+    ('1', '1 - Crítica'),
+    ('2', '2 - Alta'),
+    ('3', '3 - Média'),
+    ('4', '4 - Baixa'),
+    ('5', '5 - Sem Prioridade'),
+]
+
+
+# --- MODELS ---
 
 class Cliente(AbstractUser):
     location = models.CharField(max_length=200, blank=True, null=True)
     person_id = models.CharField(max_length=150, blank=True, null=True)
+    email = models.EmailField(unique=True, verbose_name='Endereço de e-mail')
 
     groups = models.ManyToManyField(
         "auth.Group",
@@ -23,16 +87,12 @@ class Cliente(AbstractUser):
     
     @property
     def is_consultor(self):
-        """Verifica se o usuário pertence ao grupo 'Consultores'."""
         return self.groups.filter(name='Consultores').exists()
 
     @property
     def is_support_team(self):
-        """
-        Helper geral: Retorna True se for Staff (Admin) OU Consultor.
-        Usado para dar permissões de visualização.
-        """
         return self.is_staff or self.is_consultor
+
 
 class Ambiente(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="ambientes")
@@ -42,6 +102,7 @@ class Ambiente(models.Model):
     def __str__(self):
         return f"{self.nome_ambiente} ({self.numero_ativo})"
     
+
 class Area(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="areas")
     nome_area = models.CharField(max_length=100)
@@ -49,46 +110,9 @@ class Area(models.Model):
     def __str__(self):
         return self.nome_area
 
-# --- TICKET (FASE 2) ---
 
 class Ticket(models.Model):
-    # Lista Exata de Status do IBM Maximo (ALN Domain)
-    MAXIMO_STATUS_CHOICES = [
-        ('NEW', 'Novo'),
-        ('QUEUED', 'Em fila'),
-        ('INPROG', 'Em Andamento'),
-        ('PENDING', 'Pendente'),
-        ('APPR', 'Aprovado'),
-        ('APPFML', 'Aprovado pelo Gerenciador de Cumprimento'),
-        ('APPLM', 'Aprovado pelo Gerente de Linha'),
-        ('RESOLVED', 'Resolvido'),
-        ('CLOSED', 'Fechado'),
-        ('CANCELLED', 'Cancelado'),
-        ('REJECTED', 'Rejeitado'),
-        ('DRAFT', 'Rascunho'),
-        ('HISTEDIT', 'Editado no Histórico'),
-        ('TSTCLI', 'Teste do cliente'),
-        ('TSTCLIOK', 'Teste do cliente OK'),
-        ('TSTCLIFAIL', 'Teste do cliente falhou'),
-        ('IMPPRODOK', 'Implementação em produção OK'),
-        ('AGREUN', 'Reunião Agendada'),
-        ('CRITFAIL', 'Falha Crítica'),
-        ('ROLLBACK', 'Rollback'),
-        ('TREINAMTO', 'Treinamento'),
-        ('DOC', 'Documentar'),
-        ('SLAHOLD', 'Espera de SLA'),
-    ]
-
-    PRIORIDADE_CHOICES = [
-        ('', 'Selecione...'),
-        ('1', '1 - Crítica'),
-        ('2', '2 - Alta'),
-        ('3', '3 - Média'),
-        ('4', '4 - Baixa'),
-        ('5', '5 - Sem Prioridade'),
-    ]
-
-    # Vínculos (Quem abriu, Onde, Qual Área)
+    # Vínculos
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="tickets")
     ambiente = models.ForeignKey(Ambiente, on_delete=models.SET_NULL, null=True, blank=False)
     area = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=True)
@@ -98,9 +122,15 @@ class Ticket(models.Model):
     descricao = models.TextField(verbose_name="Descrição Detalhada")
     
     # Integração Maximo
-    maximo_id = models.CharField(max_length=50, null=True, blank=True, verbose_name="ID do Chamado (SR)")
+    # MELHORIA: db_index=True acelera drasticamente as buscas pelo ID do Maximo
+    maximo_id = models.CharField(
+        max_length=50, 
+        null=True, 
+        blank=True, 
+        verbose_name="ID do Chamado (SR)",
+        db_index=True 
+    )
     
-    # Status padrão é NEW (Novo) até o Maximo processar
     status_maximo = models.CharField(
         max_length=20, 
         default='NEW', 
@@ -116,19 +146,20 @@ class Ticket(models.Model):
         blank=False
     )
 
+    # MELHORIA: upload_to usa função para organizar pastas
     anexo = models.FileField(
-        upload_to='ticket_anexos/', 
+        upload_to=ticket_upload_path, 
         null=True, 
         blank=True, 
         verbose_name="Anexo"
     )
     
-    # Auditoria (Datas automáticas)
+    # Auditoria
     data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Aberto em")
     data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Última atualização")
 
     class Meta:
-        ordering = ['-data_criacao'] # Ordena do mais recente para o mais antigo
+        ordering = ['-data_criacao']
         db_table = "tickets"
         verbose_name = "Ticket"
         verbose_name_plural = "Tickets"
@@ -138,31 +169,19 @@ class Ticket(models.Model):
 
     @property
     def badge_class(self):
-        """
-        Retorna a classe CSS do Bootstrap (bg-color) baseada no status atual.
-        Usado no frontend para colorir as etiquetas automaticamente.
-        """
+        """Retorna a classe CSS do Bootstrap para o status."""
         status = self.status_maximo
-
-        # Verde (Sucesso / Conclusão)
         if status in ['RESOLVED', 'TSTCLIOK', 'IMPPRODOK', 'APPR']:
             return 'bg-success'
-        
-        # Amarelo/Laranja (Em andamento / Aguardando / Aprovação)
         elif status in ['INPROG', 'PENDING', 'APPFML', 'APPLM', 'TSTCLI', 'AGREUN', 'TREINAMTO', 'DOC', 'SLAHOLD', 'QUEUED']:
             return 'bg-warning text-dark'
-        
-        # Vermelho (Erro / Falha / Rejeição)
         elif status in ['TSTCLIFAIL', 'CRITFAIL', 'REJECTED', 'ROLLBACK']:
             return 'bg-danger'
-        
-        # Cinza (Fechado / Cancelado / Histórico)
         elif status in ['CLOSED', 'CANCELLED', 'HISTEDIT', 'DRAFT']:
             return 'bg-secondary'
-        
-        # Azul (Padrão para Novo)
         else:
             return 'bg-primary'
+
 
 class TicketInteracao(models.Model):
     ticket = models.ForeignKey(
@@ -176,8 +195,10 @@ class TicketInteracao(models.Model):
         verbose_name="Autor"
     )
     mensagem = models.TextField(verbose_name="Mensagem")
+    
+    # MELHORIA: upload_to organizado
     anexo = models.FileField(
-        upload_to="interacoes_anexos/", 
+        upload_to=interacao_upload_path, 
         null=True, 
         blank=True,
         verbose_name="Anexo (Opcional)"
@@ -185,7 +206,7 @@ class TicketInteracao(models.Model):
     data_criacao = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['data_criacao'] # Ordem cronológica
+        ordering = ['data_criacao']
         db_table = "ticket_interacoes"
         verbose_name = "Interação"
         verbose_name_plural = "Interações"
@@ -195,21 +216,16 @@ class TicketInteracao(models.Model):
 
     @property
     def is_support(self):
-        """
-        Verifica se a mensagem deve aparecer como 'Suporte' no chat.
-        Isso agora inclui Admins E Consultores.
-        """
         return self.autor.is_support_team
     
     @property
     def filename(self):
-        """Retorna apenas o nome do arquivo, sem o caminho completo."""
         if self.anexo:
-            return os.path.basename(self.anexo.name) if self.anexo else ''
+            return os.path.basename(self.anexo.name)
         return None
     
+
 class Notificacao(models.Model):
-    # Opções de tipo para ícones no frontend
     TIPO_CHOICES = (
         ('mensagem', 'Nova Mensagem'),
         ('status', 'Mudança de Status'),
@@ -219,7 +235,7 @@ class Notificacao(models.Model):
     destinatario = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='notificacoes')
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, null=True, blank=True)
     
-    titulo = models.CharField(max_length=50, default="Nova Notificação") # Ex: "Nova Resposta"
+    titulo = models.CharField(max_length=50, default="Nova Notificação")
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='sistema')
     
     mensagem = models.CharField(max_length=255)

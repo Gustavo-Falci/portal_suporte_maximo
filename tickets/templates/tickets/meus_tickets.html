@@ -15,7 +15,7 @@
             </p>
         </div>
         <div class="col-md-4 text-md-end text-start mt-3 mt-md-0">
-            <a href="{% url 'criar_ticket' %}" class="btn btn-primary d-inline-flex align-items-center" style="background-color: var(--ibm-blue-60); border: none; padding: 10px 20px;">
+            <a href="{% url 'tickets:criar_ticket' %}" class="btn btn-primary d-inline-flex align-items-center" style="background-color: var(--ibm-blue-60); border: none; padding: 10px 20px;">
                 <span class="me-2" style="font-size: 1.2rem;">+</span> Novo Ticket
             </a>
         </div>
@@ -61,7 +61,7 @@
                                 </span>
                             </td>
                             <td class="text-end pe-4">
-                                <a href="{% url 'detalhe_ticket' ticket.id %}?origin=meus" class="btn btn-sm btn-outline-dark rounded-0" title="Ver detalhes do chamado">
+                                <a href="{% url 'tickets:detalhe_ticket' ticket.id %}?origin=meus" class="btn btn-sm btn-outline-dark rounded-0" title="Ver detalhes do chamado">
                                     Ver Detalhes
                                 </a>
                             </td>
