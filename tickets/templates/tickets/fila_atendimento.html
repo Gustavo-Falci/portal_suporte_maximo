@@ -157,6 +157,56 @@
             </div>
             {% endfor %}
         </div>
+
+        {% if tickets.has_other_pages %}
+        <nav aria-label="Navegação de tickets" class="mt-4">
+            <ul class="pagination justify-content-center">
+                
+                {% if tickets.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link rounded-0" href="?page={{ tickets.previous_page_number }}&{{ request.GET.urlencode|cut:'page=' }}" aria-label="Anterior">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link rounded-0">&laquo;</span>
+                    </li>
+                {% endif %}
+
+                {% for num in tickets.paginator.page_range %}
+                    {% if tickets.number == num %}
+                        <li class="page-item active" aria-current="page">
+                            <span class="page-link rounded-0">{{ num }}</span>
+                        </li>
+                    {% elif num > tickets.number|add:'-3' and num < tickets.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link rounded-0" href="?page={{ num }}&{{ request.GET.urlencode|cut:'page=' }}">
+                                {{ num }}
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if tickets.has_next %}
+                    <li class="page-item">
+                        <a class="page-link rounded-0" href="?page={{ tickets.next_page_number }}&{{ request.GET.urlencode|cut:'page=' }}" aria-label="Próximo">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link rounded-0">&raquo;</span>
+                    </li>
+                {% endif %}
+
+            </ul>
+        </nav>
+        <div class="text-center text-muted small mt-2 mb-4">
+            Mostrando {{ tickets.start_index }} a {{ tickets.end_index }} de {{ tickets.paginator.count }} tickets
+        </div>
+        {% endif %}
+
     {% else %}
         <div class="text-center py-5">
             <div class="mb-3">

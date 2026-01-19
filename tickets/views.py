@@ -9,6 +9,7 @@ from django.db.models import Q
 from .services import MaximoEmailService, NotificationService
 from django.template.loader import  render_to_string
 from django.http import JsonResponse
+from django.core.paginator import Paginator
 import logging
 import os
 import threading
@@ -181,8 +182,17 @@ def fila_atendimento(request: HttpRequest) -> HttpResponse:
         'novos': tickets.filter(status_maximo='NEW').count()
     }
 
+    # Define quantos tickets aparecem por página (ex: 15)
+    paginator = Paginator(tickets, 15) 
+    
+    # Pega o número da página da URL (?page=2)
+    page_number = request.GET.get('page')
+    
+    # Obtém apenas os tickets daquela página específica
+    page_obj = paginator.get_page(page_number)
+
     context = {
-        "tickets": tickets,
+        "tickets": page_obj,
         "lista_locations": lista_locations,
         "status_choices": status_choices,
         "filtros_atuais": request.GET, # Para manter o form preenchido
