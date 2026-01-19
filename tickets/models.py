@@ -232,6 +232,25 @@ class TicketInteracao(models.Model):
         if self.anexo:
             return os.path.basename(self.anexo.name)
         return None
+    
+    @property
+    def filename_short(self):
+        """
+        Retorna uma versão encurtada do nome, mantendo o início e a extensão.
+        Ex: 'Relatorio_Financeiro_Final_2024.pdf' -> 'Relatorio_Fin...2024.pdf'
+        """
+        if not self.anexo:
+            return None
+            
+        name = os.path.basename(self.anexo.name)
+        
+        # Se o nome for menor que 37 caracteres, retorna inteiro
+        if len(name) <= 37:
+            return name
+            
+        # Se for maior, pega os primeiros 15, adiciona "..." e pega os últimos 10
+        # Isso garante que a extensão (.pptx) sempre apareça
+        return f"{name[:30]}...{name[-7:]}"
 
 
 class Notificacao(models.Model):
