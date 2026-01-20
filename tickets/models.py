@@ -167,6 +167,10 @@ class Ticket(models.Model):
         db_table = "tickets"
         verbose_name = "Ticket"
         verbose_name_plural = "Tickets"
+        indexes = [
+            models.Index(fields=['cliente', 'data_criacao']),
+            models.Index(fields=['status_maximo']),
+        ]
 
     def __str__(self):
         return f"Ticket #{self.id} - {self.sumario}"

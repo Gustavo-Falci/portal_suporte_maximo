@@ -4,6 +4,7 @@ from django.conf import settings
 from .models import Ticket, TicketInteracao, Cliente, Notificacao
 from django.urls import reverse
 from django.db.models import Q
+from django.utils.html import strip_tags
 
 logger = logging.getLogger(__name__)
 
@@ -18,14 +19,14 @@ class MaximoEmailService:
         # ... (Mantenha sua lógica atual de formatação das tags SR# aqui) ...
         # Copie o conteúdo do seu método gerar_corpo_email atual para cá
         # Estou renomeando para ser mais específico
-        descricao_problema = ticket.descricao
-        sumario = ticket.sumario
+        descricao_limpa = strip_tags(ticket.descricao).replace('\n', '<br>')
+        sumario_limpo = strip_tags(ticket.sumario)
         prioridade = ticket.prioridade
         asset_num = ticket.ambiente.numero_ativo if ticket.ambiente else ""
 
-        corpo = f"Descrição do problema: {descricao_problema}<br><br>"
+        corpo = f"Descrição do problema: {descricao_limpa}<br><br>"
         corpo += "#MAXIMO_EMAIL_BEGIN<br>"
-        corpo += f"SR#DESCRIPTION={sumario}<br>;<br>"
+        corpo += f"SR#DESCRIPTION={sumario_limpo}<br>;<br>"
         corpo += f"SR#ASSETNUM={asset_num}<br>;<br>"
         corpo += f"SR#REPORTEDPRIORITY={prioridade}<br>;<br>"
 
