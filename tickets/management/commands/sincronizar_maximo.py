@@ -30,7 +30,7 @@ class Command(BaseCommand):
         params = {
             "_dropnulls": 0,
             "lean": 1,
-            "oslc.select": "TICKETID,DESCRIPTION,STATUS", 
+            "oslc.select": "TICKETID,DESCRIPTION,STATUS",
         }
 
         headers = {
