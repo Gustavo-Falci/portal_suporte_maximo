@@ -1,6 +1,6 @@
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
-from .models import Ticket, TicketInteracao
+from .models import Ticket
 from .services import NotificationService
 import logging
 

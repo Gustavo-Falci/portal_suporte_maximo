@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
-from django.conf import settings
 from .models import Ambiente, Area, Ticket, TicketInteracao
 import os
 import mimetypes
