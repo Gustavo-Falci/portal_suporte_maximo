@@ -2,10 +2,7 @@ import os
 import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.conf import settings
 from django.utils import timezone
-
-# --- FUNÇÕES AUXILIARES (Organização de Arquivos) ---
 
 
 def ticket_upload_path(instance, filename):
