@@ -1,4 +1,7 @@
 import logging
+import json
+import requests
+import urllib3
 from django.core.mail import EmailMessage
 from django.conf import settings
 from .models import Ticket, TicketInteracao, Cliente, Notificacao
@@ -294,3 +297,79 @@ class NotificationService:
 
         # === 2. ENVIO DO E-MAIL ===
         cls._enviar_email_generico(destinatarios_email, assunto_email, corpo_email)
+
+class MaximoSenderService:
+    """
+    Serviço responsável por enviar interações do Portal para o IBM Maximo (Worklogs).
+    """
+    
+    # URL configurada conforme seu POSTMAN
+    MAXIMO_API_URL = getattr(settings, 'MAXIMO_API_URL_LOG', '')
+
+    @staticmethod
+    def enviar_interacao(ticket: Ticket, interacao: TicketInteracao) -> bool:
+        """
+        Envia uma nova mensagem do chat para o Worklog do Maximo.
+        Gatilho: Botão 'Enviar' no detalhe do ticket.
+        """
+        if not ticket.maximo_id:
+            logger.warning(f"Tentativa de envio para Maximo falhou: Ticket {ticket.id} não possui maximo_id.")
+            return False
+
+        # 1. Definição do Tipo de Log e Autor
+        # Se for Staff/Suporte = WORK, Se for Cliente = CLIENTNOTE
+        if interacao.autor.is_staff or getattr(interacao.autor, 'is_support_team', False):
+            log_type = "WORK"
+            descricao_curta = "Nota do Consultor"
+        else:
+            log_type = "CLIENTNOTE"
+            descricao_curta = "Mensagem do Cliente"
+
+        # O createby no Maximo aceita string livre nesta integração
+        # Usamos o nome completo ou o email (username)
+        autor_nome = interacao.autor.get_full_name() or interacao.autor.username
+
+        # 2. Montagem do Payload JSON
+        payload = {
+            "ticketid": str(ticket.maximo_id),
+            "class": "SR", # Obrigatório conforme regra
+            "worklog": [
+                {
+                    "description": descricao_curta,
+                    "description_longdescription": interacao.mensagem,
+                    "logtype": log_type,
+                    "createby": autor_nome.upper(), # Maximo costuma gostar de UPPERCASE
+                }
+            ]
+        }
+
+        # 3. Configuração de Headers
+        headers = {
+            "Content-Type": "application/json",
+            "x-method-override": "SYNC", 
+            "patchtype": "MERGE",
+            "apikey": getattr(settings, 'MAXIMO_API_KEY', ''),
+        }
+
+        try:
+            logger.info(f"Enviando Worklog para Ticket Maximo #{ticket.maximo_id}...")
+            
+            
+            response = requests.post(
+                MaximoSenderService.MAXIMO_API_URL,
+                data=json.dumps(payload),
+                headers=headers,
+                verify=False, # Ignora SSL conforme ambiente de teste
+                timeout=10
+            )
+
+            if response.status_code in [200, 201, 204]:
+                logger.info(f"Sucesso envio Maximo: {response.status_code}")
+                return True
+            else:
+                logger.error(f"Erro Maximo API ({response.status_code}): {response.text}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Exceção ao conectar com Maximo: {e}")
+            return False

@@ -6,7 +6,7 @@ from django.urls import reverse
 from .models import Ticket, TicketInteracao, Cliente, Notificacao, MAXIMO_STATUS_CHOICES
 from .forms import TicketForm, TicketInteracaoForm
 from django.db.models import Q
-from .services import MaximoEmailService, NotificationService
+from .services import MaximoEmailService, NotificationService, MaximoSenderService
 from django.template.loader import render_to_string
 from django.http import JsonResponse
 from django.core.paginator import Paginator
@@ -99,6 +99,12 @@ def detalhe_ticket(request: HttpRequest, pk: int) -> HttpResponse:
             interacao.ticket = ticket
             interacao.autor = request.user
             interacao.save()
+
+            sincronizado = MaximoSenderService.enviar_interacao(ticket, interacao)
+            
+            if not sincronizado:
+                # Adiciona aviso visual (aparecerá se a página recarregar ou se o JS tratar mensagens)
+                messages.warning(request, "Mensagem salva localmente, mas houve instabilidade na sincronização com o IBM Maximo.")
 
             # --- 1. ENVIO DE E-MAIL EM SEGUNDO PLANO (THREADING) ---
             # Isso impede que o usuário fique esperando o SMTP responder

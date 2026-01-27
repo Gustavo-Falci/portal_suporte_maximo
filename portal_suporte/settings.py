@@ -185,6 +185,7 @@ MESSAGE_TAGS = {
 }
 
 MAXIMO_API_URL = os.getenv('MAXIMO_API_URL')
+MAXIMO_API_URL_LOG = os.getenv('MAXIMO_API_URL_LOG')
 MAXIMO_API_KEY = os.getenv('MAXIMO_API_KEY')
 
 MAXIMO_VERIFY_SSL = os.getenv('VERIFY', 'True').lower() == 'true'
