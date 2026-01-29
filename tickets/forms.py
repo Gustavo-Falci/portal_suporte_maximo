@@ -169,7 +169,7 @@ class TicketForm(forms.ModelForm):
 
             if tem_acesso_area:
                 self.fields["area"].queryset = Area.objects.filter(cliente=user)
-                self.fields["area"].required = True
+                self.fields["area"].required = False
             else:
                 self.fields["area"].queryset = Area.objects.none()
                 self.fields["area"].required = False
